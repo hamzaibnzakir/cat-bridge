@@ -1,0 +1,10 @@
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+build/
+.build/
+.swiftpm/
+*.ipa
+*.xcarchive
+CatBridge/Info.plist
+.DS_Store
