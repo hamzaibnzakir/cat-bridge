@@ -1,9 +1,15 @@
 name: Release
 
-# Push a tag like v2.1.0 to build both apps and publish them on the Releases page.
+# Builds both apps and publishes them on the Releases page.
+# Either push a tag like v2.1.0, or run it from Actions → Release → Run workflow and type the version.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to publish, e.g. v2.1.0"
+        required: true
 
 permissions:
   contents: write
@@ -27,8 +33,9 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.version || github.ref_name }}
         run: |
           ls -la dist
-          notes=$(awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## "v {f=1; next} /^## / {f=0} f' CHANGELOG.md)
-          gh release create "$GITHUB_REF_NAME" dist/DynamicIsland-windows.zip dist/CatBridge.ipa \
-            --title "Cat Bridge $GITHUB_REF_NAME" --notes "${notes:-See CHANGELOG.md}"
+          notes=$(awk -v v="${TAG#v}" '$0 ~ "^## "v {f=1; next} /^## / {f=0} f' CHANGELOG.md)
+          gh release create "$TAG" dist/DynamicIsland-windows.zip dist/CatBridge.ipa \
+            --target "$GITHUB_SHA" --title "Cat Bridge $TAG" --notes "${notes:-See CHANGELOG.md}"
