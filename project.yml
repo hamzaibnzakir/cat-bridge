@@ -11,7 +11,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "2.0"
+    MARKETING_VERSION: "2.0.1"
     CURRENT_PROJECT_VERSION: "1"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     DEAD_CODE_STRIPPING: YES
@@ -48,8 +48,12 @@ targets:
         NSLocalNetworkUsageDescription: Cat Bridge connects to your laptop over Tailscale.
         NSAppTransportSecurity:
           # The laptop is reached over Tailscale (WireGuard-encrypted) at its 100.x address, so plain HTTP inside the tailnet is fine.
+          # Note: don't add NSAllowsLocalNetworking here. When it's present, iOS ignores NSAllowsArbitraryLoads and blocks http://100.x.
           NSAllowsArbitraryLoads: true
-          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            ts.net:
+              NSIncludesSubdomains: true
+              NSExceptionAllowsInsecureHTTPLoads: true
         CFBundleURLTypes:
           - CFBundleURLName: app.catbridge.pair
             CFBundleURLSchemes:
