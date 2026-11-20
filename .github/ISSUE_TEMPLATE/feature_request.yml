@@ -1,0 +1,15 @@
+name: Feature idea
+description: Suggest something new for the island, the cat or the iPhone app
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What should it do, and why would it help?
+    validations: { required: true }
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Mock-ups, links, similar apps.

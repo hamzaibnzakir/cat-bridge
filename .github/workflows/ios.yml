@@ -1,19 +1,19 @@
-name: Build iPhone app
+name: iPhone app
 
-# Builds Cat Bridge on GitHub's free Mac machines and uploads an UNSIGNED .ipa.
-# Install it with Sideloadly (Windows) using your own Apple ID — see README.
+# Builds Cat Bridge for iPhone on GitHub's Mac machines and uploads an UNSIGNED .ipa
+# (install it with Sideloadly using your own Apple ID).
 
 on:
   push:
     branches: [main]
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  pull_request:
+    paths: ["ios/**"]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ios-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   core:
@@ -22,50 +22,44 @@ jobs:
     container: swift:6.0
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: swift test
-        working-directory: Packages/CatBridgeCore
+        working-directory: ios/Packages/CatBridgeCore
         run: swift test
 
   ios:
-    name: iPhone app (unsigned .ipa)
+    name: Unsigned .ipa
     runs-on: macos-15
     timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ios
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Toolchain
-        run: |
-          xcodebuild -version
-          echo "::notice title=Toolchain::$(xcodebuild -version | tr '\n' ' ')"
-      - name: Install XcodeGen
-        run: brew install xcodegen
+        run: echo "::notice title=Toolchain::$(xcodebuild -version | tr '\n' ' ')"
       - name: Generate Xcode project
-        run: xcodegen generate
+        run: brew install xcodegen && xcodegen generate
       - name: Archive (unsigned)
         run: |
           set -o pipefail
           mkdir -p build
           xcodebuild archive \
-            -project CatBridge.xcodeproj \
-            -scheme CatBridge \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -archivePath build/CatBridge.xcarchive \
+            -project CatBridge.xcodeproj -scheme CatBridge -configuration Release \
+            -destination "generic/platform=iOS" -archivePath build/CatBridge.xcarchive \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            2>&1 | tee build/archive.log | grep -E "error:|warning: .*(deprecated|will be an error)|\*\* ARCHIVE" || true
+            2>&1 | tee build/archive.log | grep -E "error:|\*\* ARCHIVE" || true
           test -d build/CatBridge.xcarchive || { grep -n "error:" build/archive.log | head -50; exit 1; }
-      - name: Package unsigned IPA
-        run: bash scripts/package-unsigned-ipa.sh build/CatBridge.xcarchive build/CatBridge-unsigned.ipa
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
+      - name: Package
+        run: bash scripts/package-unsigned-ipa.sh build/CatBridge.xcarchive build/CatBridge.ipa
+      - uses: actions/upload-artifact@v4
         with:
-          name: CatBridge-unsigned-ipa
-          path: build/CatBridge-unsigned.ipa
+          name: CatBridge-ipa
+          path: ios/build/CatBridge.ipa
           retention-days: 30
-      - name: Upload build log
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: archive-log
-          path: build/archive.log
+          name: ios-build-log
+          path: ios/build/archive.log
           retention-days: 7

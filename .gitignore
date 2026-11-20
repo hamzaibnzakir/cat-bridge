@@ -6,5 +6,13 @@ build/
 .swiftpm/
 *.ipa
 *.xcarchive
-CatBridge/Info.plist
+ios/CatBridge/Info.plist
 .DS_Store
+
+# Windows build output
+windows/**/bin/
+windows/**/obj/
+windows/dist/
+windows/models/face_recognition_sface_2021dec.onnx
+.vs/
+*.user
