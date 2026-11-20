@@ -1,0 +1,543 @@
+<Window x:Class="DynamicIsland.IslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DynamicIsland"
+        Title="Dynamic Island" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize" ShowActivated="False"
+        Width="540" Height="470" Foreground="White"
+        FontFamily="Segoe UI Variable Text, Segoe UI" UseLayoutRounding="True">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Accent" Color="#39FF88"/>
+        <SolidColorBrush x:Key="Dim" Color="#8E8E93"/>
+        <SolidColorBrush x:Key="Faint" Color="#5A5A5E"/>
+        <SolidColorBrush x:Key="Card" Color="#17171A"/>
+        <SolidColorBrush x:Key="CardHover" Color="#1F1F23"/>
+        <SolidColorBrush x:Key="CardEdge" Color="#242428"/>
+        <SolidColorBrush x:Key="EarPink" Color="#F7A6B6"/>
+        <SolidColorBrush x:Key="Track" Color="#2E2E33"/>
+        <FontFamily x:Key="Icons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Width" Value="38"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontFamily" Value="{StaticResource Icons}"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="19">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2C2C2E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Chip" TargetType="Button">
+            <Setter Property="Padding" Value="11,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#C7C7CC"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="11">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SliderFillBtn" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RepeatButton">
+                <Border Height="5" CornerRadius="2.5" Background="{DynamicResource Accent}"/>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="SliderBlankBtn" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RepeatButton">
+                <Border Background="Transparent"/>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="PillSlider" TargetType="Slider">
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="100"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsMoveToPointEnabled" Value="True"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Slider">
+                <Grid Height="20" Background="Transparent">
+                    <Border Height="5" CornerRadius="2.5" Background="#3A3A3C" VerticalAlignment="Center"/>
+                    <Track x:Name="PART_Track" VerticalAlignment="Center">
+                        <Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource SliderFillBtn}"/></Track.DecreaseRepeatButton>
+                        <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource SliderBlankBtn}"/></Track.IncreaseRepeatButton>
+                        <Track.Thumb><Thumb Focusable="False"><Thumb.Template><ControlTemplate TargetType="Thumb">
+                            <Ellipse Width="13" Height="13" Fill="White"/>
+                        </ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
+                    </Track>
+                </Grid>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TinyBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource Dim}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Value" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Root">
+        <!-- Shadow lives on a sibling so text inside the island stays ClearType-crisp -->
+        <Border x:Name="Shadow" Background="Black" HorizontalAlignment="Center" VerticalAlignment="Top"
+                Width="{Binding ActualWidth, ElementName=Island}" Height="{Binding ActualHeight, ElementName=Island}"
+                Margin="{Binding Margin, ElementName=Island}" IsHitTestVisible="False">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.55" Color="Black"/>
+            </Border.Effect>
+        </Border>
+
+        <Grid x:Name="Ears" HorizontalAlignment="Center" VerticalAlignment="Top" Height="20" IsHitTestVisible="False"
+              Width="{Binding ActualWidth, ElementName=Island}" Margin="0,6,0,0">
+            <Grid x:Name="EarL" Width="30" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="0.5,1">
+                <Grid.RenderTransform><TransformGroup><ScaleTransform x:Name="EarLScale"/><RotateTransform x:Name="EarLRot"/></TransformGroup></Grid.RenderTransform>
+                <Path Fill="Black" Data="M0,20 Q5.5,10.5 10.4,3.4 Q15,-1.5 19.6,3.4 Q24.5,10.5 30,20 Z"/>
+                <Path Fill="{StaticResource EarPink}" Opacity="0.9" Data="M8.5,16 Q11.3,10.5 13.4,6.8 Q15,4.6 16.6,6.8 Q18.7,10.5 21.5,16 Z"/>
+            </Grid>
+            <Grid x:Name="EarR" Width="30" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" RenderTransformOrigin="0.5,1">
+                <Grid.RenderTransform><TransformGroup><ScaleTransform x:Name="EarRScale"/><RotateTransform x:Name="EarRRot"/></TransformGroup></Grid.RenderTransform>
+                <Path Fill="Black" Data="M0,20 Q5.5,10.5 10.4,3.4 Q15,-1.5 19.6,3.4 Q24.5,10.5 30,20 Z"/>
+                <Path Fill="{StaticResource EarPink}" Opacity="0.9" Data="M8.5,16 Q11.3,10.5 13.4,6.8 Q15,4.6 16.6,6.8 Q18.7,10.5 21.5,16 Z"/>
+            </Grid>
+        </Grid>
+
+        <Border x:Name="Island" Width="190" Height="34" CornerRadius="17" Background="Black"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0"
+                MouseEnter="Island_MouseEnter" MouseLeave="Island_MouseLeave"
+                MouseLeftButtonUp="Island_MouseLeftButtonUp" AllowDrop="True"
+                PreviewMouseLeftButtonDown="Island_PreviewDown" PreviewMouseMove="Island_PreviewMove"
+                PreviewMouseLeftButtonUp="Island_PreviewUp" MouseWheel="Island_MouseWheel" MouseDown="Island_MouseDown"
+                DragEnter="Island_DragEnter" DragOver="Island_DragOver" DragLeave="Island_DragLeave" Drop="Island_Drop">
+            <Grid x:Name="Body" ClipToBounds="True">
+
+                <!-- ═════════ COMPACT PILL ═════════ -->
+                <Grid x:Name="CompactView" Margin="13,0" HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel x:Name="PrivacyDots" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="7,0,0,0" Visibility="Collapsed">
+                        <Ellipse x:Name="CamDot" Width="7" Height="7" Fill="#30D158" Margin="1,0" Visibility="Collapsed"/>
+                        <Ellipse x:Name="MicDot" Width="7" Height="7" Fill="#FF9F0A" Margin="1,0" Visibility="Collapsed"/>
+                    </StackPanel>
+
+                    <Grid VerticalAlignment="Center">
+                        <TextBlock x:Name="CompactClock" FontSize="13" FontWeight="SemiBold" Text="00:00"/>
+                        <Border x:Name="CompactArt" Width="22" Height="22" CornerRadius="6" Background="{StaticResource Card}" Visibility="Collapsed">
+                            <TextBlock x:Name="CompactArtGlyph" FontFamily="{StaticResource Icons}" Text="&#xE8D6;" FontSize="10"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Accent}"/>
+                        </Border>
+                    </Grid>
+
+                    <local:CatFace x:Name="CompactCat" Grid.Column="1" Width="34" Height="28" Mood="Sleep" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,0"/>
+                    <TextBlock x:Name="CompactCenter" Grid.Column="1" Margin="12,0" MaxWidth="300" FontSize="12.5"
+                               VerticalAlignment="Center" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis">
+                        <TextBlock.RenderTransform><TranslateTransform x:Name="CompactCenterShift"/></TextBlock.RenderTransform>
+                    </TextBlock>
+
+                    <Grid Grid.Column="2" VerticalAlignment="Center">
+                        <StackPanel x:Name="VizPanel" Orientation="Horizontal" Height="18" Visibility="Collapsed">
+                            <Rectangle x:Name="Bar0" Width="3" Height="4" RadiusX="1.5" RadiusY="1.5" Margin="1.25,0" VerticalAlignment="Center" Fill="{DynamicResource Accent}"/>
+                            <Rectangle x:Name="Bar1" Width="3" Height="4" RadiusX="1.5" RadiusY="1.5" Margin="1.25,0" VerticalAlignment="Center" Fill="{DynamicResource Accent}"/>
+                            <Rectangle x:Name="Bar2" Width="3" Height="4" RadiusX="1.5" RadiusY="1.5" Margin="1.25,0" VerticalAlignment="Center" Fill="{DynamicResource Accent}"/>
+                            <Rectangle x:Name="Bar3" Width="3" Height="4" RadiusX="1.5" RadiusY="1.5" Margin="1.25,0" VerticalAlignment="Center" Fill="{DynamicResource Accent}"/>
+                            <Rectangle x:Name="Bar4" Width="3" Height="4" RadiusX="1.5" RadiusY="1.5" Margin="1.25,0" VerticalAlignment="Center" Fill="{DynamicResource Accent}"/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="StatusPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel x:Name="WifiPanel" Orientation="Horizontal" Height="11" Margin="0,0,9,0" VerticalAlignment="Center">
+                                <Rectangle x:Name="W0" Width="2.5" Height="3.5" RadiusX="0.8" RadiusY="0.8" Margin="0.6,0" VerticalAlignment="Bottom" Fill="White"/>
+                                <Rectangle x:Name="W1" Width="2.5" Height="6" RadiusX="0.8" RadiusY="0.8" Margin="0.6,0" VerticalAlignment="Bottom" Fill="White"/>
+                                <Rectangle x:Name="W2" Width="2.5" Height="8.5" RadiusX="0.8" RadiusY="0.8" Margin="0.6,0" VerticalAlignment="Bottom" Fill="White"/>
+                                <Rectangle x:Name="W3" Width="2.5" Height="11" RadiusX="0.8" RadiusY="0.8" Margin="0.6,0" VerticalAlignment="Bottom" Fill="White"/>
+                            </StackPanel>
+                            <StackPanel x:Name="BatteryPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="BatText" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <Grid VerticalAlignment="Center">
+                                    <Border Width="23" Height="11.5" CornerRadius="3.5" BorderBrush="#8E8E93" BorderThickness="1"/>
+                                    <Border x:Name="BatFill" Width="17" Height="7.5" CornerRadius="1.8" Background="White"
+                                            HorizontalAlignment="Left" Margin="2,0,0,0"/>
+                                    <TextBlock x:Name="BatBolt" FontFamily="{StaticResource Icons}" Text="&#xE945;" FontSize="8"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Black" Visibility="Collapsed"/>
+                                </Grid>
+                                <Border Width="1.6" Height="4" CornerRadius="0,1,1,0" Background="#8E8E93" VerticalAlignment="Center" Margin="0.6,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <!-- ═════════ TOAST / LIVE ACTIVITY ═════════ -->
+                <Grid x:Name="ToastView" Margin="12,0,18,0" Visibility="Collapsed" Opacity="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border x:Name="ToastArt" Width="44" Height="44" CornerRadius="12" Background="{StaticResource Card}" VerticalAlignment="Center">
+                        <TextBlock x:Name="ToastGlyph" FontFamily="{StaticResource Icons}" FontSize="18"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Accent}"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="ToastTitle" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="ToastSub" FontSize="12" Foreground="{StaticResource Dim}" TextTrimming="CharacterEllipsis"/>
+                        <Grid x:Name="ToastBar" Height="4" Margin="0,7,0,0" Visibility="Collapsed">
+                            <Border Background="{StaticResource Track}" CornerRadius="2"/>
+                            <Border Background="{DynamicResource Accent}" CornerRadius="2" RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform><ScaleTransform x:Name="ToastBarScale" ScaleX="0.5"/></Border.RenderTransform>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                    <TextBlock x:Name="ToastRight" Grid.Column="2" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Accent}"/>
+                </Grid>
+
+                <!-- ═════════ EXPANDED ═════════ -->
+                <Grid x:Name="ExpandedView" Margin="18,14,18,16" Visibility="Collapsed" Opacity="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- header: cat + title, back button inside a widget -->
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="BackBtn" Style="{StaticResource TinyBtn}" Content="&#xE72B;" FontSize="12" Visibility="Collapsed"
+                                    Margin="-4,0,2,0" Click="Back_Click"/>
+                            <local:CatFace x:Name="HdrCat" Width="32" Height="27" Mood="Awake" Margin="-2,0,6,0"/>
+                            <TextBlock x:Name="HdrTitle" FontSize="14.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                                       FontFamily="Segoe UI Variable Display, Segoe UI"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button x:Name="HdrPin" Style="{StaticResource TinyBtn}" Content="&#xE718;" FontSize="11" Margin="0,0,8,0"
+                                    Foreground="{StaticResource Faint}" Click="PinBtn_Click"/>
+                            <Ellipse x:Name="HdrCam" Width="6" Height="6" Fill="#30D158" Margin="0,0,4,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            <Ellipse x:Name="HdrMic" Width="6" Height="6" Fill="#FF9F0A" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            <TextBlock x:Name="HdrClock" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid x:Name="Pages" Grid.Row="1" Margin="0,12,0,0">
+                        <Grid.RenderTransform><TranslateTransform x:Name="PagesShift"/></Grid.RenderTransform>
+
+                        <!-- HOME: widget grid, built in code -->
+                        <ScrollViewer x:Name="HomeScroll" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <Border x:Name="DockHost"/>
+                                <Grid x:Name="HomeView">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- APPS (taskbar replacement), built in code -->
+                        <Grid x:Name="AppsPanel" Visibility="Collapsed"/>
+
+
+                        <!-- MEDIA -->
+                        <Grid x:Name="MediaPanel">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid x:Name="MediaMain">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="88"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="MediaArt" Width="88" Height="88" CornerRadius="18" Background="{StaticResource Card}">
+                                    <TextBlock x:Name="MediaArtGlyph" FontFamily="{StaticResource Icons}" Text="&#xE8D6;" FontSize="28"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Accent}"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="MediaTitle" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="MediaArtist" FontSize="12.5" Foreground="{StaticResource Dim}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                                    <Grid x:Name="ProgressTrack" Height="12" Margin="0,8,0,0" Background="Transparent" Cursor="Hand"
+                                          MouseLeftButtonDown="ProgressTrack_MouseLeftButtonDown">
+                                        <Border Height="4" Background="{StaticResource Track}" CornerRadius="2"/>
+                                        <Border Height="4" Background="White" CornerRadius="2" RenderTransformOrigin="0,0.5">
+                                            <Border.RenderTransform><ScaleTransform x:Name="ProgressScale" ScaleX="0"/></Border.RenderTransform>
+                                        </Border>
+                                    </Grid>
+                                    <Grid Margin="0,1,0,0">
+                                        <TextBlock x:Name="MediaPos" FontSize="10.5" Foreground="{StaticResource Dim}"/>
+                                        <TextBlock x:Name="MediaApp" FontSize="10.5" HorizontalAlignment="Center" Foreground="{DynamicResource Accent}" Opacity="0.85"/>
+                                        <TextBlock x:Name="MediaDur" FontSize="10.5" HorizontalAlignment="Right" Foreground="{StaticResource Dim}"/>
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
+                                        <Button Style="{StaticResource IconBtn}" Content="&#xE892;" Click="Prev_Click"/>
+                                        <Button x:Name="PlayBtn" Style="{StaticResource IconBtn}" Content="&#xE768;" FontSize="19" Width="44" Height="44" Margin="10,0" Click="Play_Click"/>
+                                        <Button Style="{StaticResource IconBtn}" Content="&#xE893;" Click="Next_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- lyrics -->
+                            <Grid Grid.Row="1" Margin="0,8,0,0">
+                                <StackPanel x:Name="LyricsSynced" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LyricPrev" FontSize="12" Foreground="{StaticResource Faint}" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="LyricCur" FontSize="15.5" FontWeight="SemiBold" Foreground="{DynamicResource Accent}"
+                                               TextAlignment="Center" TextWrapping="Wrap" MaxHeight="44" Margin="0,3">
+                                        <TextBlock.RenderTransform><TranslateTransform x:Name="LyricShift"/></TextBlock.RenderTransform>
+                                    </TextBlock>
+                                    <TextBlock x:Name="LyricNext" FontSize="12" Foreground="{StaticResource Faint}" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <ScrollViewer x:Name="LyricsPlainScroll" VerticalScrollBarVisibility="Hidden" Visibility="Collapsed">
+                                    <TextBlock x:Name="LyricsPlain" FontSize="12.5" Foreground="#C7C7CC" TextAlignment="Center" TextWrapping="Wrap" LineHeight="18"/>
+                                </ScrollViewer>
+                            </Grid>
+
+                            <TextBlock x:Name="NoMedia" Grid.RowSpan="2" Visibility="Collapsed" TextAlignment="Center" VerticalAlignment="Center"
+                                       FontSize="13" Foreground="{StaticResource Dim}" TextWrapping="Wrap"
+                                       Text="Nothing playing&#10;Start Spotify, YouTube or any media app"/>
+                        </Grid>
+
+                        <!-- SYSTEM -->
+                        <StackPanel x:Name="SystemPanel" Visibility="Collapsed">
+                            <Grid Height="30">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/><ColumnDefinition Width="92"/></Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Label}" Text="CPU"/>
+                                <Grid Grid.Column="1" Height="6"><Border Background="{StaticResource Track}" CornerRadius="3"/>
+                                    <Border Background="{DynamicResource Accent}" CornerRadius="3" RenderTransformOrigin="0,0.5"><Border.RenderTransform><ScaleTransform x:Name="CpuScale" ScaleX="0"/></Border.RenderTransform></Border></Grid>
+                                <TextBlock x:Name="CpuText" Grid.Column="2" Style="{StaticResource Value}"/>
+                            </Grid>
+                            <Grid Height="30">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/><ColumnDefinition Width="92"/></Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Label}" Text="GPU"/>
+                                <Grid Grid.Column="1" Height="6"><Border Background="{StaticResource Track}" CornerRadius="3"/>
+                                    <Border Background="#64D2FF" CornerRadius="3" RenderTransformOrigin="0,0.5"><Border.RenderTransform><ScaleTransform x:Name="GpuScale" ScaleX="0"/></Border.RenderTransform></Border></Grid>
+                                <TextBlock x:Name="GpuText" Grid.Column="2" Style="{StaticResource Value}"/>
+                            </Grid>
+                            <Grid Height="30">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/><ColumnDefinition Width="92"/></Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Label}" Text="RAM"/>
+                                <Grid Grid.Column="1" Height="6"><Border Background="{StaticResource Track}" CornerRadius="3"/>
+                                    <Border Background="#BF5AF2" CornerRadius="3" RenderTransformOrigin="0,0.5"><Border.RenderTransform><ScaleTransform x:Name="RamScale" ScaleX="0"/></Border.RenderTransform></Border></Grid>
+                                <TextBlock x:Name="RamText" Grid.Column="2" Style="{StaticResource Value}"/>
+                            </Grid>
+                            <Border Height="1" Background="#262628" Margin="0,8"/>
+                            <Grid Height="26">
+                                <TextBlock Style="{StaticResource Label}" Text="Network"/>
+                                <TextBlock x:Name="NetText" Style="{StaticResource Value}"/>
+                            </Grid>
+                            <Grid Height="26">
+                                <TextBlock Style="{StaticResource Label}" Text="Wi-Fi"/>
+                                <TextBlock x:Name="WifiText" Style="{StaticResource Value}"/>
+                            </Grid>
+                            <Grid Height="26">
+                                <TextBlock Style="{StaticResource Label}" Text="Battery"/>
+                                <TextBlock x:Name="BatDetail" Style="{StaticResource Value}"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- BRAINBOX / HERMES -->
+                        <Grid x:Name="BrainPanel" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Background="{StaticResource Card}" CornerRadius="16" Height="34" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox x:Name="PromptBox" Background="Transparent" BorderThickness="0" Foreground="White" CaretBrush="{DynamicResource Accent}"
+                                             FontSize="13" VerticalContentAlignment="Center" Margin="12,0,4,0"
+                                             PreviewMouseLeftButtonDown="PromptBox_PreviewMouseDown" KeyDown="PromptBox_KeyDown"/>
+                                    <TextBlock x:Name="PromptHint" Text="Ask Hermes…  (Enter to queue, Esc to close)" FontSize="13" Foreground="{StaticResource Faint}"
+                                               VerticalAlignment="Center" Margin="14,0,0,0" IsHitTestVisible="False"/>
+                                    <Button Grid.Column="1" Style="{StaticResource TinyBtn}" Content="&#xE724;" Margin="0,0,4,0" Foreground="{DynamicResource Accent}" Click="PromptSend_Click"/>
+                                </Grid>
+                            </Border>
+                            <TextBlock Grid.Row="1" Style="{StaticResource Label}" Text="HERMES QUEUE" FontSize="10.5" FontWeight="SemiBold"/>
+                            <UniformGrid x:Name="QueueChips" Grid.Row="2" Columns="4" Margin="0,6,0,0">
+                                <Border Background="{StaticResource Card}" CornerRadius="12" Margin="0,0,6,0" Padding="0,7">
+                                    <StackPanel><TextBlock x:Name="QPending" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Text="–"/>
+                                        <TextBlock Text="pending" FontSize="10.5" Foreground="{StaticResource Dim}" HorizontalAlignment="Center"/></StackPanel>
+                                </Border>
+                                <Border Background="{StaticResource Card}" CornerRadius="12" Margin="0,0,6,0" Padding="0,7">
+                                    <StackPanel><TextBlock x:Name="QRunning" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="#FFD60A" Text="–"/>
+                                        <TextBlock Text="running" FontSize="10.5" Foreground="{StaticResource Dim}" HorizontalAlignment="Center"/></StackPanel>
+                                </Border>
+                                <Border Background="{StaticResource Card}" CornerRadius="12" Margin="0,0,6,0" Padding="0,7">
+                                    <StackPanel><TextBlock x:Name="QDone" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource Accent}" Text="–"/>
+                                        <TextBlock Text="done" FontSize="10.5" Foreground="{StaticResource Dim}" HorizontalAlignment="Center"/></StackPanel>
+                                </Border>
+                                <Border Background="{StaticResource Card}" CornerRadius="12" Padding="0,7">
+                                    <StackPanel><TextBlock x:Name="QFailed" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="#FF453A" Text="–"/>
+                                        <TextBlock Text="failed" FontSize="10.5" Foreground="{StaticResource Dim}" HorizontalAlignment="Center"/></StackPanel>
+                                </Border>
+                            </UniformGrid>
+                            <TextBlock x:Name="QueueMsg" Grid.Row="2" Visibility="Collapsed" FontSize="12" Foreground="{StaticResource Dim}"
+                                       TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock Grid.Row="3" Style="{StaticResource Label}" Text="INFRASTRUCTURE" FontSize="10.5" FontWeight="SemiBold" Margin="0,10,0,4"/>
+                            <Grid Grid.Row="4">
+                                <ScrollViewer VerticalScrollBarVisibility="Hidden">
+                                    <ItemsControl x:Name="CcRows">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <Ellipse Width="6" Height="6" Fill="{Binding Dot}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Key}" FontSize="12" Foreground="#C7C7CC" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Value}" FontSize="12" FontWeight="SemiBold" MaxWidth="210" TextTrimming="CharacterEllipsis"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <TextBlock x:Name="CcMsg" FontSize="11.5" Foreground="{StaticResource Dim}" TextWrapping="Wrap" VerticalAlignment="Bottom"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- SOUND & DISPLAY -->
+                        <Grid x:Name="SoundPanel" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Height="30">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
+                                <Button x:Name="MasterMuteBtn" Style="{StaticResource TinyBtn}" Content="&#xE767;" FontSize="13" HorizontalAlignment="Left" Click="MasterMute_Click"/>
+                                <Slider x:Name="MasterSlider" Grid.Column="1" Style="{StaticResource PillSlider}" ValueChanged="MasterSlider_ValueChanged"/>
+                                <TextBlock x:Name="MasterText" Grid.Column="2" Style="{StaticResource Value}"/>
+                            </Grid>
+                            <Grid Grid.Row="1" Height="30">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
+                                <TextBlock FontFamily="{StaticResource Icons}" Text="&#xE706;" FontSize="14" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                <Slider x:Name="BrightSlider" Grid.Column="1" Style="{StaticResource PillSlider}" Minimum="5" ValueChanged="BrightSlider_ValueChanged"/>
+                                <TextBlock x:Name="BrightText" Grid.Column="2" Style="{StaticResource Value}"/>
+                            </Grid>
+                            <TextBlock Grid.Row="2" Style="{StaticResource Label}" Text="OUTPUT" FontSize="10.5" FontWeight="SemiBold" Margin="0,6,0,4"/>
+                            <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                                <StackPanel x:Name="DeviceChips" Orientation="Horizontal"/>
+                            </ScrollViewer>
+                            <Grid Grid.Row="4" Margin="0,8,0,0">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Style="{StaticResource Label}" Text="APPS" FontSize="10.5" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
+                                    <StackPanel x:Name="AppRows"/>
+                                </ScrollViewer>
+                                <TextBlock x:Name="NoApps" Grid.Row="1" Text="No apps are playing sound" FontSize="12" Foreground="{StaticResource Dim}" Visibility="Collapsed" Margin="0,6,0,0"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ALERTS (Windows notifications) -->
+                        <Grid x:Name="AlertsPanel" Visibility="Collapsed">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Grid Margin="0,0,0,6">
+                                <TextBlock x:Name="AlertsCount" Style="{StaticResource Label}" FontSize="10.5" FontWeight="SemiBold" Text="NOTIFICATIONS"/>
+                                <Button x:Name="AlertsClear" Style="{StaticResource Chip}" Background="{StaticResource Card}" Content="Clear" Padding="9,2" FontSize="11"
+                                        HorizontalAlignment="Right" Margin="0" Click="AlertsClear_Click"/>
+                            </Grid>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
+                                <StackPanel x:Name="AlertRows"/>
+                            </ScrollViewer>
+                            <StackPanel x:Name="AlertsMsgPanel" Grid.Row="1" VerticalAlignment="Center" Visibility="Collapsed">
+                                <TextBlock x:Name="AlertsMsg" FontSize="12.5" Foreground="{StaticResource Dim}" TextWrapping="Wrap" TextAlignment="Center"/>
+                                <Button x:Name="AlertsSettingsBtn" Style="{StaticResource Chip}" Background="{StaticResource Card}" Foreground="{DynamicResource Accent}"
+                                        Content="Open notification settings" HorizontalAlignment="Center" Margin="0,10,0,0" Click="AlertsSettings_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- SHELF + CLIPBOARD -->
+                        <Grid x:Name="ShelfPanel" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="92"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <TextBlock Style="{StaticResource Label}" FontSize="10.5" FontWeight="SemiBold" Text="SHELF · drag files here, drag them back out"/>
+                                <Button Style="{StaticResource Chip}" Background="{StaticResource Card}" Content="Clear" Padding="9,2" FontSize="11"
+                                        HorizontalAlignment="Right" Margin="0" Click="ShelfClear_Click"/>
+                            </Grid>
+                            <Border x:Name="ShelfDrop" Grid.Row="1" Margin="0,6,0,0" CornerRadius="14" BorderThickness="1.5" BorderBrush="#2C2C2E" Background="#0E0E10">
+                                <Grid>
+                                    <ScrollViewer x:Name="ShelfScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                                        <StackPanel x:Name="ShelfTiles" Orientation="Horizontal" Margin="6,0"/>
+                                    </ScrollViewer>
+                                    <TextBlock x:Name="ShelfEmpty" Text="Drop files on the island to park them here" FontSize="12" Foreground="{StaticResource Faint}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                </Grid>
+                            </Border>
+                            <TextBlock Grid.Row="2" Style="{StaticResource Label}" FontSize="10.5" FontWeight="SemiBold" Margin="0,10,0,4" Text="CLIPBOARD · click to paste"/>
+                            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Hidden">
+                                <StackPanel x:Name="ClipRows"/>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- TIMER -->
+                        <StackPanel x:Name="TimerPanel" Visibility="Collapsed" VerticalAlignment="Center">
+                            <TextBlock x:Name="TimerBig" FontSize="46" FontWeight="Light" HorizontalAlignment="Center" Text="00:00"
+                                       FontFamily="Segoe UI Variable Display, Segoe UI"/>
+                            <Grid Height="4" Margin="40,6,40,16">
+                                <Border Background="{StaticResource Track}" CornerRadius="2"/>
+                                <Border Background="{DynamicResource Accent}" CornerRadius="2" RenderTransformOrigin="0,0.5">
+                                    <Border.RenderTransform><ScaleTransform x:Name="TimerScale" ScaleX="0"/></Border.RenderTransform>
+                                </Border>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Style="{StaticResource Chip}" Background="{StaticResource Card}" Content="5 min" Tag="5" Click="TimerPreset_Click"/>
+                                <Button Style="{StaticResource Chip}" Background="{StaticResource Card}" Content="15 min" Tag="15" Click="TimerPreset_Click"/>
+                                <Button Style="{StaticResource Chip}" Background="{StaticResource Card}" Content="25 min" Tag="25" Click="TimerPreset_Click"/>
+                                <Button Style="{StaticResource Chip}" Background="{StaticResource Card}" Content="45 min" Tag="45" Click="TimerPreset_Click"/>
+                                <Button x:Name="TimerStop" Style="{StaticResource Chip}" Background="#3A1C1C" Foreground="#FF6961" Content="Stop" Click="TimerStop_Click"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

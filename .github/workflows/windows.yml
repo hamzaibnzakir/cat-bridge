@@ -1,0 +1,33 @@
+name: Windows app
+
+on:
+  push:
+    branches: [main]
+    paths: ["windows/**", "docs/WINDOWS.md", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["windows/**"]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Dynamic Island (.zip)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build
+        shell: pwsh
+        working-directory: windows
+        run: ./build.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DynamicIsland-windows
+          path: windows/dist/DynamicIsland-windows.zip
+          retention-days: 30

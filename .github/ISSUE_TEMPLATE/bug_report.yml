@@ -1,0 +1,27 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part?
+      options: [Dynamic Island, Island taskbar, Cat Center, Notifications / Shopify, Desktop cat, Cat Face sign-in, iPhone app, Cat Bridge connection]
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Screenshots help.
+    validations: { required: true }
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "Cat Bridge 2.0.1 · Windows 11 24H2 · iOS 27.1"
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: Relevant lines from %AppData%\DynamicIsland\log.txt (remove anything private).
+      render: text

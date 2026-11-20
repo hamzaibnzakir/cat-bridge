@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>DynamicIsland.FaceSignIn</AssemblyName>
+    <RootNamespace>DynamicIsland.FaceSignIn</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Version>1.5.0</Version>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <ComVisible>false</ComVisible>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- COM interfaces generated from Microsoft's credentialprovider.idl (via CredProvider.NET, MIT). Embedded, so no extra DLL ships. -->
+    <Reference Include="CredProvider.NET.Interop2">
+      <HintPath>lib\CredProvider.NET.Interop2.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Security" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <EmbeddedResource Include="cat-tile.png" LogicalName="cat-tile.png" />
+  </ItemGroup>
+</Project>
