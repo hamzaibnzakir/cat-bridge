@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0
+- **Windows installer:** `DynamicIsland-Setup.exe` installs Cat Bridge for your account (no admin needed). It adds Start menu shortcuts for Cat Bridge and Cat Center, and can start with Windows. It also installs .NET 8 for you if it's missing.
+- **Automatic updates** from GitHub Releases, in Cat Center → General → Updates (choose Automatic, Ask me or Off). Downloads are checked against GitHub's SHA-256 before installing, and the app restarts by itself.
+- **Clean uninstall:** puts the taskbar back, removes Cat Face sign-in (one admin prompt), and asks before deleting your settings.
+- The app now has its own icon.
+
 ## 2.0.1
 - iPhone: fixed "App Transport Security policy requires a secure connection" when connecting to the laptop's Tailscale address.
 

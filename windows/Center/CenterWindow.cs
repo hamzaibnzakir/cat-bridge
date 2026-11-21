@@ -68,7 +68,7 @@ public sealed partial class CenterWindow : Window
         Background = Bg; Foreground = Text; FontFamily = Font;
         UseLayoutRounding = true;
         TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
-        try { Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/DynamicIsland;component/app.ico", UriKind.Absolute)); } catch { }
+        try { Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/DynamicIsland;component/Installer/app.ico", UriKind.Absolute)); } catch { }
 
         _root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         _root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -105,7 +105,7 @@ public sealed partial class CenterWindow : Window
         SourceInitialized += (_, _) => DarkChrome();
         _live.Tick += (_, _) => { foreach (var u in _liveUpdaters.ToList()) { try { u(); } catch (Exception ex) { App.Log(ex); } } };
         _live.Start();
-        Closed += (_, _) => { _live.Stop(); _open = null; _island.NotificationsChanged -= OnNotes; _island.WindowsChanged -= OnWindows; };
+        Closed += (_, _) => { _live.Stop(); _open = null; if (_updateHandler != null) Updater.Changed -= _updateHandler; _island.NotificationsChanged -= OnNotes; _island.WindowsChanged -= OnWindows; };
         _island.NotificationsChanged += OnNotes;
         _island.WindowsChanged += OnWindows;
     }

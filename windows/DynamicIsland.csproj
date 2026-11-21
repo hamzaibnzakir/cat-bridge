@@ -9,9 +9,10 @@
     <Nullable>enable</Nullable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>DynamicIsland</AssemblyName>
+    <ApplicationIcon>Installer\app.ico</ApplicationIcon>
     <RootNamespace>DynamicIsland</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <Product>Dynamic Island for Windows</Product>
     <Company>Foluceen</Company>
     <NoWarn>WFAC010;CS9057</NoWarn>
@@ -43,4 +44,7 @@
       <None Include="models\face_recognition_sface_2021dec.onnx" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
+  <ItemGroup>
+    <Resource Include="Installer\app.ico" />
+  </ItemGroup>
 </Project>
