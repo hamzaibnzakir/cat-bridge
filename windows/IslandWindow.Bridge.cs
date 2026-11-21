@@ -72,13 +72,11 @@ public partial class IslandWindow : IBridgeHost
     {
         var v = typeof(IslandWindow).Assembly.GetName().Version;
         return new HelloInfo(Environment.MachineName, v == null ? "2" : $"{v.Major}.{v.Minor}", Tailnet.IPv4?.ToString(), _s.BridgePort,
-            new[] { "status", "clipboard", "files", "shelf", "link", "media", "focus", "lock", "ping", "notify", "phone", "alerts", "sales", "inbox" });
+            new[] { "status", "clipboard", "files", "shelf", "link", "media", "focus", "lock", "ping", "notify", "phone", "alerts", "inbox" });
     }
 
     IReadOnlyList<AlertEntry> IBridgeHost.Alerts() => Ui(() =>
         _notes.History.Take(40).Select(n => new AlertEntry(n.App, n.Title, n.Body, n.Time, n.Aumid == PhoneAumid)).ToList());
-
-    SalesInfo IBridgeHost.Sales() => Ui(() => new SalesInfo(Sales.Orders, Sales.Summary, Sales.Totals.ToDictionary(k => k.Key, k => k.Value)));
 
     T Ui<T>(Func<T> f) => Dispatcher.CheckAccess() ? f() : Dispatcher.Invoke(f);
     void UiAsync(Action a) => Dispatcher.BeginInvoke(a);
@@ -144,7 +142,7 @@ public partial class IslandWindow : IBridgeHost
         }
     });
 
-    void IBridgeHost.Focus(int minutes) => UiAsync(() => StartFocus(minutes));
+    void IBridgeHost.Focus(int minutes) => UiAsync(() => { BeginFocus(minutes, fromPhone: true); ShowToast(new ToastSpec($"{minutes}-minute focus started from your iPhone", null, Glyph: "\uE916", Seconds: 2.5)); });
 
     [DllImport("user32.dll")] static extern bool LockWorkStation();
     void IBridgeHost.Lock() => UiAsync(() => LockWorkStation());
@@ -256,7 +254,7 @@ public partial class IslandWindow
         bool wasLow = _phoneBattery is int b0 && b0 <= 20;
         if (battery != null) _phoneBattery = battery;
         if (charging != null) _phoneCharging = charging;
-        if (focus != null) _phoneFocus = focus.Length == 0 || focus.Equals("off", StringComparison.OrdinalIgnoreCase) ? null : focus;
+        if (focus != null) { _phoneFocus = focus.Length == 0 || focus.Equals("off", StringComparison.OrdinalIgnoreCase) ? null : focus; PhoneFocusChanged(_phoneFocus); }
         _phoneSeen = DateTime.Now;
         if (_phoneBattery is int b && b <= 20 && !wasLow && _phoneCharging != true)
             ShowToast(new ToastSpec("iPhone battery low", $"{b}%. Plug it in?", null, "", Yellow, b / 100.0, $"{b}%", 5));
@@ -268,7 +266,7 @@ public partial class IslandWindow
     void IBridgeHost.StopFocus() => UiAsync(() =>
     {
         if (_timerEnd == null) return;
-        _timerEnd = null; RefreshTimer(); UpdateCompact(); UpdateTimers();
+        EndFocus(completed: false);
         ShowToast(new ToastSpec("Focus ended from your iPhone", null, Glyph: "", Seconds: 2.5));
     });
 

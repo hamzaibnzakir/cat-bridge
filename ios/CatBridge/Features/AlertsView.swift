@@ -77,15 +77,13 @@ struct AlertsView: View {
 struct AlertRow: View {
     let entry: AlertEntry
 
-    private var isShopify: Bool { (entry.app + entry.title).localizedCaseInsensitiveContains("shopify") }
-
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: isShopify ? "bag.fill" : entry.fromPhone ? "iphone" : "bell.fill")
+            Image(systemName: entry.fromPhone ? "iphone" : "bell.fill")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
-                .background(isShopify ? Theme.shopify : Theme.cardHi, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .background(Theme.cardHi, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(entry.app.replacingOccurrences(of: "iPhone · ", with: "").uppercased())

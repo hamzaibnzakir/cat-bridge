@@ -15,6 +15,8 @@ namespace DynamicIsland.FaceHelper;
 ///   FaceHelper --verify               face check for the sign-in tile; prints STATUS|… lines then RESULT|passed / RESULT|password|why
 ///   FaceHelper --install DIR HANDOFF  (elevated) install the sign-in tile from the app folder DIR
 ///   FaceHelper --uninstall            (elevated) remove it completely
+///   FaceHelper --trust-phone NAME64 KEY64   (elevated) allow an iPhone's Face ID key to unlock this PC
+///   FaceHelper --untrust-phone ID|all       (elevated) stop trusting it
 /// Runs separately from the sign-in screen so a crash here can never take sign-in down.
 /// </summary>
 static class Program
@@ -31,6 +33,8 @@ static class Program
                 "--verify" => Verify(),
                 "--install" when args.Length >= 3 => Install(args[1], args[2], args.Skip(3).ToArray()),
                 "--uninstall" => Uninstall(),
+                "--trust-phone" when args.Length >= 3 => TrustPhone(args[1], args[2]),
+                "--untrust-phone" when args.Length >= 2 => UntrustPhone(args[1]),
                 _ => Usage(),
             };
         }
@@ -172,11 +176,56 @@ static class Program
         var dll = Path.Combine(SignInSecret.InstallDir, "DynamicIsland.FaceSignIn.dll");
         if (File.Exists(dll))
             Run(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"), $"/u \"{dll}\"");
-        foreach (var p in new[] { SignInSecret.SecretPath, SignInSecret.ConfigPath }) try { File.Delete(p); } catch { }
+        foreach (var p in new[] { SignInSecret.SecretPath, SignInSecret.ConfigPath, Shared.PhoneTrust.FilePath }) try { File.Delete(p); } catch { }
         try { Directory.Delete(SignInSecret.InstallDir, true); }
         catch (Exception ex) { Log("files in use, removing at next restart: " + ex.Message); ScheduleDelete(SignInSecret.InstallDir); }
         Console.WriteLine("OK");
         return 0;
+    }
+
+    // ───────── iPhone unlock: trusted keys (only admins and SYSTEM can write this file) ─────────
+
+    static int TrustPhone(string name64, string key64)
+    {
+        if (!IsAdmin()) { Console.WriteLine("Needs administrator rights."); return 3; }
+        var key = Convert.FromBase64String(key64);
+        if (key.Length != 65 || key[0] != 4) { Console.WriteLine("That isn't a P-256 public key."); return 4; }
+        var name = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(name64)).Replace("|", " ").Trim();
+        if (name.Length == 0) name = "iPhone";
+        if (name.Length > 60) name = name[..60];
+        var phones = Shared.PhoneTrust.Load();
+        phones.RemoveAll(p => p.Id == Shared.PhoneTrust.KeyId(key));
+        phones.Add(new Shared.PhoneTrust.Phone { Name = name, PublicKey = key, Added = DateTime.UtcNow.ToString("u") });
+        WritePhones(phones);
+        Log("trusted phone " + Shared.PhoneTrust.KeyId(key));
+        Console.WriteLine("OK");
+        return 0;
+    }
+
+    static int UntrustPhone(string id)
+    {
+        if (!IsAdmin()) { Console.WriteLine("Needs administrator rights."); return 3; }
+        var phones = Shared.PhoneTrust.Load();
+        phones.RemoveAll(p => id == "all" || p.Id == id);
+        WritePhones(phones);
+        Log("untrusted phone " + id);
+        Console.WriteLine("OK");
+        return 0;
+    }
+
+    static void WritePhones(List<Shared.PhoneTrust.Phone> phones)
+    {
+        var path = Shared.PhoneTrust.FilePath;
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var tmp = path + ".tmp";
+        File.WriteAllLines(tmp, phones.Select(Shared.PhoneTrust.Line));
+        var sec = new System.Security.AccessControl.FileSecurity();
+        sec.SetAccessRuleProtection(true, false);
+        sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), System.Security.AccessControl.FileSystemRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
+        sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), System.Security.AccessControl.FileSystemRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
+        sec.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null), System.Security.AccessControl.FileSystemRights.Read, System.Security.AccessControl.AccessControlType.Allow));
+        new FileInfo(tmp).SetAccessControl(sec);
+        File.Move(tmp, path, overwrite: true);
     }
 
     static int Run(string exe, string args)

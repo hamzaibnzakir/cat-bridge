@@ -27,7 +27,6 @@ public sealed record InboxItem(string Id, string Kind, string Title, string Text
 public sealed record HelloInfo(string Device, string Version, string? TailscaleIp, int Port, string[] Features);
 /// <summary>A notification the laptop received (for the iPhone app's "Laptop alerts" list).</summary>
 public sealed record AlertEntry(string App, string Title, string Body, DateTime Time, bool FromPhone);
-public sealed record SalesInfo(int Orders, string Summary, Dictionary<string, decimal> Totals);
 
 /// <summary>Everything the bridge asks the island to do. Called on thread-pool threads.</summary>
 public interface IBridgeHost
@@ -55,10 +54,24 @@ public interface IBridgeHost
     void TestPush();
     IReadOnlyList<InboxItem> Inbox();
 
+    // iPhone unlock + wake (results are (status code, reply body))
+    Task<(int status, object body)> UnlockChallenge();
+    Task<(int status, object body)> UnlockApprove(string nonce, string signature);
+    (int status, object body) UnlockRegister(string name, string publicKey);
+    object UnlockRegistration(string publicKey);
+    void Wake();
+    object NetInfo();
+    /// One remote-control command from the iPhone's trackpad/keyboard (see InputInjector). Returns a reply line or null.
+    string? Input(string command);
+    string InputHello();
+    Task<object> Locate();
+    void Alarm(bool on);
+    void LostMode(bool on, string? message);
+    object FocusStats();
+
     // native iPhone app
     HelloInfo Hello();
     IReadOnlyList<AlertEntry> Alerts();
-    SalesInfo Sales();
 }
 
 /// <summary>
@@ -229,6 +242,37 @@ public sealed class BridgeServer : IDisposable
         return g.Length == _key.Length && CryptographicOperations.FixedTimeEquals(g, _key);
     }
 
+    async Task RunInputSocket(Req r, NetworkStream s)
+    {
+        if (!r.Headers.TryGetValue("Sec-WebSocket-Key", out var wsKey) || wsKey.Length > 100) { await Json(s, 400, new { error = "Bad WebSocket request." }); return; }
+        var accept = Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(wsKey.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+        var head = Encoding.ASCII.GetBytes($"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n");
+        await s.WriteAsync(head);
+        using var ws = System.Net.WebSockets.WebSocket.CreateFromStream(s, new System.Net.WebSockets.WebSocketCreationOptions { IsServer = true, KeepAliveInterval = TimeSpan.FromSeconds(15) });
+        async Task Say(string text) => await ws.SendAsync(Encoding.UTF8.GetBytes(text), System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
+        await Say(_host.InputHello());
+        var buf = new byte[8192];
+        while (ws.State == System.Net.WebSockets.WebSocketState.Open)
+        {
+            using var ms = new MemoryStream();
+            System.Net.WebSockets.WebSocketReceiveResult res;
+            do
+            {
+                res = await ws.ReceiveAsync(buf, CancellationToken.None);
+                if (res.MessageType == System.Net.WebSockets.WebSocketMessageType.Close) { try { await ws.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None); } catch { } return; }
+                ms.Write(buf, 0, res.Count);
+                if (ms.Length > 64 * 1024) return;
+            } while (!res.EndOfMessage);
+            foreach (var line in Encoding.UTF8.GetString(ms.ToArray()).Split('\n'))
+            {
+                if (line.Length == 0) continue;
+                string? reply = null;
+                try { reply = _host.Input(line); } catch (Exception ex) { Log?.Invoke(ex); }
+                if (reply != null) await Say(reply);
+            }
+        }
+    }
+
     static async Task<string> ReadText(Req r, int max = 1_000_000)
     {
         if (r.Length > max) throw new InvalidDataException("too big");
@@ -267,6 +311,13 @@ public sealed class BridgeServer : IDisposable
         }
 
         if (!Authorized(r)) { await Json(s, 401, new { error = "This phone isn't paired. Scan the QR code on your laptop again." }); return; }
+
+        // live trackpad + keyboard: a WebSocket that stays open while the Remote screen is showing
+        if (r.Method == "GET" && r.Path == "/api/input" && r.Headers.TryGetValue("Upgrade", out var up) && up.Equals("websocket", StringComparison.OrdinalIgnoreCase))
+        {
+            await RunInputSocket(r, s);
+            return;
+        }
 
         switch (r.Method, r.Path)
         {
@@ -397,6 +448,68 @@ public sealed class BridgeServer : IDisposable
                 return;
             }
 
+            case ("GET", "/api/unlock/challenge"):
+            {
+                var (code, body) = await _host.UnlockChallenge();
+                await Json(s, code, body);
+                return;
+            }
+
+            case ("POST", "/api/unlock/approve"):
+            {
+                var o = await ReadJsonObject(r);
+                var nonce = Str(o, "nonce"); var sig = Str(o, "signature");
+                if (nonce == null || sig == null || nonce.Length > 200 || sig.Length > 400) { await Json(s, 400, new { error = "Send nonce and signature." }); return; }
+                var (code, body) = await _host.UnlockApprove(nonce, sig);
+                await Json(s, code, body);
+                return;
+            }
+
+            case ("POST", "/api/unlock/register"):
+            {
+                var o = await ReadJsonObject(r);
+                var key = Str(o, "publicKey"); var name = Str(o, "name") ?? "iPhone";
+                if (key == null || key.Length > 200) { await Json(s, 400, new { error = "Send publicKey." }); return; }
+                var (code, body) = _host.UnlockRegister(Clip(name, 60), key);
+                await Json(s, code, body);
+                return;
+            }
+
+            case ("GET", "/api/unlock/register"):
+                await Json(s, 200, _host.UnlockRegistration(r.Q("key") ?? ""));
+                return;
+
+            case ("POST", "/api/wake"):
+                _host.Wake();
+                await Json(s, 200, new { ok = true });
+                return;
+
+            case ("GET", "/api/locate"):
+                await Json(s, 200, await _host.Locate());
+                return;
+
+            case ("POST", "/api/alarm"):
+                _host.Alarm(r.Q("on") != "0");
+                await Json(s, 200, new { ok = true });
+                return;
+
+            case ("POST", "/api/lost"):
+            {
+                var o = await ReadJsonObject(r);
+                var on = (Str(o, "on") ?? "true").Trim().ToLowerInvariant() is "true" or "1" or "yes";
+                _host.LostMode(on, Str(o, "message") is string m ? Clip(m, 200) : null);
+                await Json(s, 200, new { ok = true });
+                return;
+            }
+
+            case ("GET", "/api/focus/stats"):
+                await Json(s, 200, _host.FocusStats());
+                return;
+
+            case ("GET", "/api/netinfo"):
+                await Json(s, 200, _host.NetInfo());
+                return;
+
             case ("POST", "/api/phone"):
             {
                 var o = await ReadJsonObject(r);
@@ -448,10 +561,6 @@ public sealed class BridgeServer : IDisposable
 
             case ("GET", "/api/alerts"):
                 await Json(s, 200, _host.Alerts());
-                return;
-
-            case ("GET", "/api/sales"):
-                await Json(s, 200, _host.Sales());
                 return;
         }
         await Json(s, 404, new { error = "Unknown request." });

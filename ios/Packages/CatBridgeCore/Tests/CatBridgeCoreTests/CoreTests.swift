@@ -45,10 +45,21 @@ final class CoreTests: XCTestCase {
         XCTAssertTrue(a.first?.fromPhone ?? false)
     }
 
+    func testUnlockMessageMatchesLaptop() {
+        let c = UnlockChallenge(nonce: "abc+/=", machine: "desktop-24f6uuc")
+        XCTAssertEqual(String(data: c.message, encoding: .utf8), "catbridge-unlock|v1|DESKTOP-24F6UUC|abc+/=")
+    }
+
+    func testWakeOnLanPacket() throws {
+        let p = try XCTUnwrap(WakeOnLan.packet(mac: "AA:BB:CC:DD:EE:0F"))
+        XCTAssertEqual(p.count, 102)
+        XCTAssertEqual(Array(p.prefix(6)), [UInt8](repeating: 0xFF, count: 6))
+        XCTAssertEqual(Array(p[6..<12]), [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x0F])
+        XCTAssertEqual(Array(p[96..<102]), [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x0F])
+        XCTAssertNil(WakeOnLan.packet(mac: "nope"))
+    }
+
     func testFormatting() {
-        XCTAssertEqual(Fmt.money(412, "USD"), "$412")
-        XCTAssertEqual(Fmt.money(45000, "NGN"), "₦45,000")
-        XCTAssertEqual(Fmt.money(245.5, "USD"), "$245.50")
         XCTAssertEqual(Fmt.size(1536), "1.5 KB")
         XCTAssertEqual(Fmt.timer(1490), "24:50")
         XCTAssertEqual(BridgeClient.headerSafe("Photo café.jpg"), "Photo caf%C3%A9.jpg")
@@ -76,8 +87,6 @@ final class LiveBridgeTests: XCTestCase {
         _ = try await client.inbox()
         let alerts = try await client.alerts()
         XCTAssertFalse(alerts.isEmpty)
-        let sales = try await client.sales()
-        XCTAssertGreaterThanOrEqual(sales.orders, 0)
     }
 
     func testActions() async throws {
@@ -91,6 +100,25 @@ final class LiveBridgeTests: XCTestCase {
         try await client.stopFocus()
         try await client.ping()
         try await client.openLink("https://example.com/swift")
+    }
+
+    func testFindWakeUnlockFocus() async throws {
+        let loc = try await client.locate()
+        XCTAssertNotNil(loc.latitude)
+        try await client.alarm(true)
+        try await client.lostMode(true, message: "Call me")
+        try await client.wake()
+        let net = try await client.netInfo()
+        XCTAssertNotNil(WakeOnLan.packet(mac: try XCTUnwrap(net.adapters.first).mac))
+        let st = try await client.focusStats()
+        XCTAssertEqual(st.week.count, 7)
+        let ch = try await client.unlockChallenge()
+        XCTAssertFalse(ch.nonce.isEmpty)
+        let reg = try await client.unlockRegister(name: "Test iPhone", publicKey: Data(repeating: 4, count: 65))
+        XCTAssertEqual(reg.state, "pending")
+        do { try await client.unlockApprove(nonce: ch.nonce, signature: Data([1, 2, 3])); XCTFail("should be refused") }
+        catch let e as BridgeError { if case .server(let code, _) = e { XCTAssertEqual(code, 403) } else { XCTFail("\(e)") } }
+        XCTAssertEqual(client.inputURL?.absoluteString, "ws://127.0.0.1:47801/api/input?k=abc123abc123abc123abc123")
     }
 
     func testUploadAndDownload() async throws {

@@ -165,11 +165,13 @@ public partial class IslandWindow : Window
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
         Native.RegisterHotKey(_hwnd, 4, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 0x41); // Ctrl+Alt+A: apps
         Native.RegisterHotKey(_hwnd, 5, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 0x43); // Ctrl+Alt+C: Cat Center
+        Native.RegisterHotKey(_hwnd, 6, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 0x54); // Ctrl+Alt+T: copy text from screen
+        Native.RegisterHotKey(_hwnd, 7, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 0x53); // Ctrl+Alt+S: screenshot
         StartDock();
         Native2.AddClipboardFormatListener(_hwnd);
         Closed += (_, _) =>
         {
-            for (int i = 1; i <= 5; i++) Native.UnregisterHotKey(_hwnd, i);
+            for (int i = 1; i <= 7; i++) Native.UnregisterHotKey(_hwnd, i);
             StopDock();
             Native2.RemoveClipboardFormatListener(_hwnd);
         };
@@ -185,11 +187,14 @@ public partial class IslandWindow : Window
             if (w.ToInt32() == 3) OpenPrompt();
             if (w.ToInt32() == 4) OpenAppSearch();
             if (w.ToInt32() == 5) Center.CenterWindow.Open(this);
+            if (w.ToInt32() == 6) CaptureText();
+            if (w.ToInt32() == 7) CaptureScreenshot();
             handled = true;
         }
-        else if (msg == Native2.WM_CLIPBOARDUPDATE && _s.ClipboardHistory)
+        else if (msg == Native2.WM_CLIPBOARDUPDATE)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => { if (_clip.Capture() && _tab == "shelf") RefreshShelf(); }));
+            if (_s.ClipboardHistory) Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => { if (_clip.Capture() && _tab == "shelf") RefreshShelf(); }));
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(ClipboardImageToShelf));
         }
         return IntPtr.Zero;
     }
@@ -225,6 +230,8 @@ public partial class IslandWindow : Window
         StartBridge();
         WirePhoneAlerts();
         WireNotifyExtras();
+        WireUnlock();
+        WireGadgets();
         await mediaInit;
         await SlowTick();
         UpdateTimers();
@@ -779,15 +786,13 @@ public partial class IslandWindow : Window
     void TimerPreset_Click(object sender, RoutedEventArgs e)
     {
         var min = int.Parse((string)((Button)sender).Tag);
-        _timerTotal = TimeSpan.FromMinutes(min);
-        _timerEnd = DateTime.Now + _timerTotal;
-        RefreshTimer(); UpdateCompact(); UpdateTimers();
+        BeginFocus(min);
         e.Handled = true;
     }
 
     void TimerStop_Click(object sender, RoutedEventArgs e)
     {
-        _timerEnd = null; RefreshTimer(); UpdateCompact();
+        EndFocus(completed: false);
         e.Handled = true;
     }
 
@@ -813,11 +818,10 @@ public partial class IslandWindow : Window
         if (_timerEnd is not DateTime end) return;
         if (DateTime.Now >= end)
         {
-            _timerEnd = null;
             SystemSounds.Exclamation.Play();
             TimerFinished?.Invoke();
-            ShowToast(new ToastSpec("Time's up", $"{_timerTotal.TotalMinutes:0}-minute timer finished", Glyph: "", Seconds: 8));
-            RefreshTimer(); UpdateCompact();
+            ShowToast(new ToastSpec("Time's up", $"{_timerTotal.TotalMinutes:0}-minute focus done. Nice work!", Glyph: "", Seconds: 8));
+            EndFocus(completed: true);
         }
     }
 
@@ -893,6 +897,7 @@ public partial class IslandWindow : Window
     {
         var p = _power;
         PowerEvent?.Invoke(ev, p.Percent);
+        if (ev is "plug" or "unplug") ApplyStayAwake();
         switch (ev)
         {
             case "plug": ShowToast(new ToastSpec("Charging", null, null, "", null, p.Percent / 100.0, $"{p.Percent}%", 3, "power")); break;

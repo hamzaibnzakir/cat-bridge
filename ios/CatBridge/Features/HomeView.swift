@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var typed = ""
     @State private var link = ""
     @State private var confirmLock = false
+    @State private var showFind = false
     @FocusState private var focused: Bool
 
     private var online: Bool { model.connection == .online }
@@ -22,11 +23,11 @@ struct HomeView: View {
                     nowPlaying
                     SectionTitle(text: "Laptop")
                     actions
+                    if let f = model.focus { focusCard(f) }
                     SectionTitle(text: "Clipboard")
                     clipboard
                     SectionTitle(text: "Open on laptop")
                     linkCard
-                    if let s = model.sales, s.orders > 0 { salesCard(s) }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 30)
@@ -35,6 +36,7 @@ struct HomeView: View {
             .refreshable { await model.refresh() }
             .background(Theme.bg)
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showFind) { FindView() }
             .confirmationDialog("Lock your laptop?", isPresented: $confirmLock, titleVisibility: .visible) {
                 Button("Lock laptop", role: .destructive) { model.act("Laptop locked") { try await $0.lock() } }
             }
@@ -172,9 +174,47 @@ struct HomeView: View {
             } else {
                 ActionTile(icon: "timer", label: "Focus 25 min") { model.act("Focus timer started") { try await $0.focus(minutes: 25) } }
             }
-            ActionTile(icon: "speaker.wave.3.fill", label: "Find laptop", tint: Theme.yellow) { model.act("Meow! The cat is calling") { try await $0.ping() } }
+            ActionTile(icon: model.unlocking ? "hourglass" : "faceid", label: "Unlock laptop", tint: Theme.green) {
+                if model.unlockState == .ready || UnlockKey.exists { Task { await model.unlockLaptop() } }
+                else { model.show("Set it up first: Settings → Unlock laptop with Face ID", error: true) }
+            }
+            ActionTile(icon: "sun.max.fill", label: "Wake laptop", tint: Theme.yellow) { Task { await model.wakeLaptop() } }
+            ActionTile(icon: "location.fill", label: "Find laptop", tint: Theme.blue) { showFind = true }
             ActionTile(icon: "lock.fill", label: "Lock laptop", tint: Theme.blue) { confirmLock = true }
-            ActionTile(icon: "arrow.clockwise", label: "Refresh", tint: Theme.green) { Task { await model.refresh() } }
+            ActionTile(icon: "speaker.wave.3.fill", label: "Meow", tint: Theme.accent) { model.act("Meow! The cat is calling") { try await $0.ping() } }
+        }
+    }
+
+    // ───────── focus ─────────
+
+    private func focusCard(_ f: FocusStats) -> some View {
+        CardBox {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(Int(f.todayMinutes)) min focused today").font(.system(size: 18, weight: .bold, design: .rounded))
+                    Text("\(f.todaySessions) session\(f.todaySessions == 1 ? "" : "s") · \(f.streak)-day streak")
+                        .font(.system(size: 13, design: .rounded)).foregroundStyle(Theme.dim)
+                }
+                Spacer()
+                if f.held > 0 {
+                    Text("\(f.held) waiting").font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .padding(.horizontal, 8).padding(.vertical, 4).background(Theme.accent.opacity(0.18), in: Capsule()).foregroundStyle(Theme.accent)
+                }
+            }
+            let top = max(30, f.week.max() ?? 30)
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(Array(f.week.enumerated()), id: \.offset) { i, m in
+                    VStack(spacing: 5) {
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(i == f.week.count - 1 ? Theme.accent : Theme.accent.opacity(0.45))
+                            .frame(height: max(4, CGFloat(m / top) * 70))
+                        Text(i < f.weekLabels.count ? String(f.weekLabels[i].prefix(3)) : "")
+                            .font(.system(size: 10, weight: .medium, design: .rounded)).foregroundStyle(Theme.dim)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 92, alignment: .bottom)
         }
     }
 
@@ -234,24 +274,6 @@ struct HomeView: View {
                 guard URL(string: u) != nil, !u.isEmpty else { model.show("That doesn't look like a link", error: true); return }
                 model.act("Opened on laptop") { try await $0.openLink(u) }
                 link = ""
-            }
-        }
-    }
-
-    private func salesCard(_ s: SalesInfo) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(text: "Shopify today")
-            CardBox {
-                HStack {
-                    Image(systemName: "bag.fill").foregroundStyle(.white)
-                        .frame(width: 40, height: 40).background(Theme.shopify, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    VStack(alignment: .leading) {
-                        Text("\(s.orders) order\(s.orders == 1 ? "" : "s")").font(.system(size: 20, weight: .bold, design: .rounded))
-                        Text(s.totals.sorted { $0.value > $1.value }.map { Fmt.money($0.value, $0.key) }.joined(separator: " + "))
-                            .font(.system(size: 15, design: .rounded)).foregroundStyle(Theme.shopify)
-                    }
-                    Spacer()
-                }
             }
         }
     }

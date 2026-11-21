@@ -22,6 +22,7 @@ namespace DynamicIsland.FaceSignIn
         CatFaceCredential _cred;
         ICredentialProviderEvents _events;
         ulong _context;
+        internal PhoneUnlock Phone;   // null when no iPhone is trusted
 
         public int SetUsageScenario(_CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, uint dwFlags)
         {
@@ -51,6 +52,8 @@ namespace DynamicIsland.FaceSignIn
         {
             _events = null;
             _cred?.StopHelper();
+            try { Phone?.Dispose(); } catch { }
+            Phone = null;
             return HR.S_OK;
         }
 
@@ -68,6 +71,7 @@ namespace DynamicIsland.FaceSignIn
                     if (string.Equals(sid, _secret.Sid, StringComparison.OrdinalIgnoreCase))
                     {
                         _cred = new CatFaceCredential(this, sid, _secret);
+                        StartPhoneUnlock(sid);
                         break;
                     }
                 }
@@ -115,6 +119,17 @@ namespace DynamicIsland.FaceSignIn
             return ppcpc == null ? HR.E_INVALIDARG : HR.S_OK;
         }
 
+        void StartPhoneUnlock(string sid)
+        {
+            try
+            {
+                if (Phone != null || !PhoneUnlock.AnyTrusted) return;
+                Phone = new PhoneUnlock(sid, name => Ui.Post(() => _cred?.PhoneApproved(name)));
+                Phone.Start();
+            }
+            catch (Exception ex) { Log.Write("phone unlock: " + ex); Phone = null; }
+        }
+
         internal void RaiseCredentialsChanged()
         {
             try { _events?.CredentialsChanged(_context); } catch (Exception ex) { Log.Write("CredentialsChanged: " + ex); }
@@ -141,7 +156,7 @@ namespace DynamicIsland.FaceSignIn
 
     static class Fields
     {
-        public const uint Tile = 0, Label = 1, Title = 2, Feed = 3, Status = 4, UsePassword = 5, Password = 6, Submit = 7;
+        public const uint Tile = 0, Label = 1, Title = 2, Feed = 3, Status = 4, UsePassword = 5, Password = 6, Submit = 7, UsePhone = 8;
         const string CPFG_CREDENTIAL_PROVIDER_LOGO = "2d837775-f6cd-464e-a745-482fd0b47493";
         const string CPFG_CREDENTIAL_PROVIDER_LABEL = "286bbff3-bad4-438f-b007-79b7267c3d48";
         const string CPFG_LOGON_PASSWORD_GUID = "60624cfa-a477-47b1-8a8e-3a4a19981827";
@@ -156,6 +171,7 @@ namespace DynamicIsland.FaceSignIn
             new FieldDef(_CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_COMMAND_LINK, "Use my password instead"),
             new FieldDef(_CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_PASSWORD_TEXT, "Password", CPFG_LOGON_PASSWORD_GUID),
             new FieldDef(_CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_SUBMIT_BUTTON, "Submit"),
+            new FieldDef(_CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_COMMAND_LINK, "Unlock with my iPhone"),
         };
     }
 }

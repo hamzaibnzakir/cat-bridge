@@ -56,11 +56,61 @@ public struct AlertEntry: Codable, Equatable, Identifiable, Sendable {
     public var id: String { "\(time.timeIntervalSince1970)|\(app)|\(title)" }
 }
 
-/// Today's Shopify orders seen by the laptop (GET /api/sales).
-public struct SalesInfo: Codable, Equatable, Sendable {
-    public var orders: Int
-    public var summary: String
-    public var totals: [String: Double]
+/// GET /api/unlock/challenge
+public struct UnlockChallenge: Codable, Equatable, Sendable {
+    public var nonce: String
+    public var machine: String
+    /// The exact bytes the iPhone signs (must match the laptop's PhoneTrust.Message).
+    public var message: Data { Data("catbridge-unlock|v1|\(machine.uppercased())|\(nonce)".utf8) }
+}
+
+public struct UnlockRegistration: Codable, Equatable, Sendable {
+    public var state: String      // none | pending | trusted | denied
+    public var code: String?
+}
+
+/// GET /api/netinfo: what the iPhone needs to send a Wake-on-LAN packet.
+public struct NetInfo: Codable, Equatable, Sendable {
+    public struct Adapter: Codable, Equatable, Sendable {
+        public var name: String
+        public var wifi: Bool
+        public var up: Bool
+        public var mac: String
+        public var ips: [String]
+        public var broadcasts: [String]
+    }
+    public var machine: String
+    public var adapters: [Adapter]
+}
+
+/// GET /api/focus/stats
+public struct FocusStats: Codable, Equatable, Sendable {
+    public var todayMinutes: Double
+    public var todaySessions: Int
+    public var week: [Double]
+    public var weekLabels: [String]
+    public var weekMinutes: Double
+    public var streak: Int
+    public var completed: Int
+    public var active: Bool
+    public var secondsLeft: Int
+    public var held: Int
+}
+
+/// GET /api/locate
+public struct LaptopLocation: Codable, Equatable, Sendable {
+    public var latitude: Double?
+    public var longitude: Double?
+    public var accuracy: Double?
+    public var source: String?
+    public var problem: String?
+    public var publicIp: String?
+    public var wifi: String?
+    public var battery: Int?
+    public var charging: Bool?
+    public var locked: Bool?
+    public var lost: Bool?
+    public var time: Date
 }
 
 /// The laptop's error replies look like {"error": "…"}.

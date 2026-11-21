@@ -11,7 +11,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "2.1.0"
+    MARKETING_VERSION: "2.2.0"
     CURRENT_PROJECT_VERSION: "1"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     DEAD_CODE_STRIPPING: YES
@@ -32,6 +32,7 @@ targets:
       - path: CatBridge
     dependencies:
       - package: CatBridgeCore
+      - target: CatBridgeShare
     info:
       path: CatBridge/Info.plist
       properties:
@@ -45,6 +46,7 @@ targets:
         UIRequiresFullScreen: true
         ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: Cat Bridge uses the camera to scan the pairing code shown on your laptop.
+        NSFaceIDUsageDescription: Cat Bridge uses Face ID to unlock your laptop.
         NSLocalNetworkUsageDescription: Cat Bridge connects to your laptop over Tailscale.
         NSAppTransportSecurity:
           # The laptop is reached over Tailscale (WireGuard-encrypted) at its 100.x address, so plain HTTP inside the tailnet is fine.
@@ -68,6 +70,41 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+
+  CatBridgeShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension
+      - path: CatBridge/Shared
+    dependencies:
+      - package: CatBridgeCore
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Send to Laptop
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsImageWithMaxCount: 20
+              NSExtensionActivationSupportsMovieWithMaxCount: 10
+              NSExtensionActivationSupportsFileWithMaxCount: 20
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.catbridge.phone.share
+        PRODUCT_NAME: CatBridgeShare
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        APPLICATION_EXTENSION_API_ONLY: YES
         CODE_SIGN_STYLE: Automatic
 
 schemes:

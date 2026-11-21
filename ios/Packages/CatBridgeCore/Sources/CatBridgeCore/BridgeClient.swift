@@ -42,7 +42,6 @@ public final class BridgeClient: @unchecked Sendable {
     public func shelf() async throws -> [ShelfEntry] { try await get("/api/shelf") }
     public func inbox() async throws -> [InboxItem] { try await get("/api/inbox") }
     public func alerts() async throws -> [AlertEntry] { try await get("/api/alerts") }
-    public func sales() async throws -> SalesInfo { try await get("/api/sales") }
 
     public func laptopClipboard() async throws -> String {
         struct R: Decodable { var text: String }
@@ -101,6 +100,50 @@ public final class BridgeClient: @unchecked Sendable {
         try? FileManager.default.removeItem(at: dest)
         try data.write(to: dest)
         return dest
+    }
+
+    // ───────── unlock with Face ID, wake, find ─────────
+
+    public func unlockChallenge() async throws -> UnlockChallenge { try await get("/api/unlock/challenge") }
+
+    public func unlockApprove(nonce: String, signature: Data) async throws {
+        let body = try CatJSON.encoder.encode(["nonce": nonce, "signature": signature.base64EncodedString()])
+        try await post("/api/unlock/approve", body: body, type: "application/json")
+    }
+
+    /// Asks the laptop to trust this iPhone's Face ID key (you then press Allow on the laptop).
+    public func unlockRegister(name: String, publicKey: Data) async throws -> UnlockRegistration {
+        let body = try CatJSON.encoder.encode(["name": name, "publicKey": publicKey.base64EncodedString()])
+        var req = try request("/api/unlock/register", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (data, resp) = try await run { done in self.session.uploadTask(with: req, from: body, completionHandler: done) }
+        try check(data, resp)
+        do { return try CatJSON.decoder.decode(UnlockRegistration.self, from: data) } catch { throw BridgeError.badReply }
+    }
+
+    public func unlockRegistration(publicKey: Data) async throws -> UnlockRegistration {
+        let k = publicKey.base64EncodedString().addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+        return try await get("/api/unlock/register?key=\(k)")
+    }
+
+    public func wake() async throws { try await post("/api/wake") }
+    public func netInfo() async throws -> NetInfo { try await get("/api/netinfo") }
+    public func focusStats() async throws -> FocusStats { try await get("/api/focus/stats") }
+    public func locate() async throws -> LaptopLocation { try await get("/api/locate") }
+    public func alarm(_ on: Bool) async throws { try await post("/api/alarm?on=\(on ? 1 : 0)") }
+    public func lostMode(_ on: Bool, message: String?) async throws {
+        var o = ["on": on ? "true" : "false"]
+        if let message { o["message"] = message }
+        try await post("/api/lost", body: try CatJSON.encoder.encode(o), type: "application/json")
+    }
+
+    /// ws://… URL for the live trackpad/keyboard channel.
+    public var inputURL: URL? {
+        guard let base = pairing.baseURL, var c = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
+        c.scheme = "ws"
+        c.path = "/api/input"
+        c.queryItems = [URLQueryItem(name: "k", value: pairing.key)]
+        return c.url
     }
 
     public enum MediaAction: String, Sendable { case toggle, next, prev }

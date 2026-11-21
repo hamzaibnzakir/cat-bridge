@@ -30,6 +30,8 @@ struct SettingsView: View {
                     Text("Works anywhere both devices are on Tailscale. Only devices in your tailnet can reach the laptop, and each request needs this key.")
                 }
 
+                UnlockSection()
+
                 Section {
                     Text("Your laptop sends pop-up alerts through the free Bark app: timers, low battery, servers going down, your Windows notifications while you're away, and \"Ring my iPhone\".")
                         .font(.subheadline).foregroundStyle(Theme.dim)
@@ -113,7 +115,7 @@ struct ShortcutsGuide: View {
                 GuideStep(n: 2, text: "Choose App Notification (Notification), pick Shopify (or WhatsApp, Messages, Mail…), and select Run Immediately.")
                 GuideStep(n: 3, text: "Add the action Send to Laptop (Cat Bridge).")
                 GuideStep(n: 4, text: "Set App to the app's name. Tap Title and choose the notification's Title; do the same for Subtitle and Body.")
-                GuideStep(n: 5, text: "Done. Shopify orders show up on the laptop as a green sale card with the amount and a cha-ching.")
+                GuideStep(n: 5, text: "Done. Those notifications now pop up on the laptop too.")
             }
             Text("iOS lets each automation watch one app, so make one per app you care about. If iOS asks before running, check that Run Immediately is on.")
                 .font(.footnote).foregroundStyle(Theme.dim)
@@ -133,5 +135,47 @@ struct StatusGuide: View {
             Text("The island's iPhone widget shows the battery ring and your Focus.")
                 .font(.footnote).foregroundStyle(Theme.dim)
         }
+    }
+}
+
+/// Settings → Unlock laptop with Face ID.
+struct UnlockSection: View {
+    @Environment(AppModel.self) private var model
+    @State private var name = UserDefaults.standard.string(forKey: "unlock.name") ?? "My iPhone"
+    @State private var busy = false
+
+    var body: some View {
+        Section {
+            switch model.unlockState {
+            case .ready:
+                Label("Face ID can unlock your laptop", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.green)
+                Button("Unlock laptop now") { Task { await model.unlockLaptop() } }
+                Button("Stop using Face ID for this", role: .destructive) { model.removeUnlock() }
+            case .waiting(let code):
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("On the laptop, Cat Center shows a request. Check this code matches, then press Allow:")
+                        .font(.subheadline).foregroundStyle(Theme.dim)
+                    Text(code.count == 6 ? String(code.prefix(3)) + " " + String(code.suffix(3)) : code)
+                        .font(.system(size: 34, weight: .bold, design: .monospaced)).foregroundStyle(Theme.accent)
+                    HStack { ProgressView(); Text("Waiting for the laptop…").font(.footnote).foregroundStyle(Theme.dim) }
+                }
+                Button("Cancel", role: .destructive) { model.removeUnlock() }
+            default:
+                Text("Unlock your locked laptop with Face ID from this iPhone. Your Face ID key never leaves the iPhone's Secure Enclave.")
+                    .font(.subheadline).foregroundStyle(Theme.dim)
+                if case .denied = model.unlockState { Text("The laptop said no.").font(.footnote).foregroundStyle(Theme.red) }
+                if case .failed(let why) = model.unlockState { Text(why).font(.footnote).foregroundStyle(Theme.red) }
+                TextField("Name shown on the laptop", text: $name)
+                Button(busy ? "Setting up…" : "Set up") {
+                    busy = true
+                    UserDefaults.standard.set(name, forKey: "unlock.name")
+                    Task { await model.setUpUnlock(name: name); busy = false }
+                }
+                .disabled(busy)
+            }
+        } header: { Text("Unlock laptop with Face ID") } footer: {
+            Text("Needs Cat Face turned on for the laptop's sign-in screen. Works when you're signed in and the laptop is locked.")
+        }
+        .task { if model.unlockState == .unknown { await model.checkUnlock() } }
     }
 }
