@@ -22,12 +22,21 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
       - name: Build
         shell: pwsh
         working-directory: windows
         run: ./build.ps1
+      - name: Check the installer was built
+        shell: pwsh
+        run: if (-not (Test-Path windows/dist/DynamicIsland-Setup.exe)) { throw "no installer" }
       - uses: actions/upload-artifact@v4
         with:
           name: DynamicIsland-windows
-          path: windows/dist/DynamicIsland-windows.zip
+          path: |
+            windows/dist/DynamicIsland-windows.zip
+            windows/dist/DynamicIsland-Setup.exe
           retention-days: 30

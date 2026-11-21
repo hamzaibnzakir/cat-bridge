@@ -52,6 +52,13 @@ public sealed class AppSettings
     public string BarkEncryptIv { get; set; } = "";
     public string BarkSound { get; set; } = "";
 
+    // ── updates ──
+    /// <summary>auto = download and install new versions quietly; notify = ask first; off = never check.</summary>
+    public string UpdateMode { get; set; } = "notify";
+    /// <summary>Where releases come from (owner/repo on GitHub). Point it at your fork if you build your own.</summary>
+    public string UpdateRepo { get; set; } = "hamzaibnzakir/cat-bridge";
+    public string SkippedVersion { get; set; } = "";
+
     // ── taskbar replacement ──
     /// <summary>Hide the Windows taskbar; the island's dock and Apps page take over. Restored when the app exits.</summary>
     public bool HideTaskbar { get; set; } = false;

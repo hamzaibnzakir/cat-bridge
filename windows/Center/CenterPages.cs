@@ -20,6 +20,7 @@ namespace DynamicIsland.Center;
 public sealed partial class CenterWindow
 {
     App TheApp => (App)Application.Current;
+    Action? _updateHandler;
 
     // ═════════════════════════ HOME ═════════════════════════
 
@@ -669,6 +670,39 @@ public sealed partial class CenterWindow
 
     void GeneralPage()
     {
+        Add(Caps("Updates"));
+        var status = T("", 13, Dim, null, true);
+        var notes = T("", 12.5, Dim, null, true, new Thickness(0, 8, 0, 0));
+        var actions = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
+        var bar = new ProgressBar { Height = 4, Minimum = 0, Maximum = 1, Margin = new Thickness(0, 10, 0, 0), Foreground = Accent, Background = CardHi, BorderThickness = new Thickness(0), Visibility = Visibility.Collapsed };
+        void Refresh()
+        {
+            status.Text = Updater.Status + (Updater.LastCheck > DateTime.MinValue ? $"  ·  checked {Ago(Updater.LastCheck)}" : "");
+            bar.Visibility = Updater.Progress is double p ? Visibility.Visible : Visibility.Collapsed;
+            if (Updater.Progress is double pp) bar.Value = pp;
+            actions.Children.Clear();
+            actions.Children.Add(Button("Check now", () => _ = Updater.CheckAsync(userAsked: true)).Also(b => b.Margin = new Thickness(0, 0, 8, 8)));
+            if (Updater.Available is { } r)
+            {
+                actions.Children.Add(Button(Updater.Installed ? $"Install {r.Version.ToString(3)}" : "Download", () => _ = Updater.InstallAsync(quiet: false), primary: true).Also(b => b.Margin = new Thickness(0, 0, 8, 8)));
+                actions.Children.Add(Button("What's new", () => Open(r.PageUrl)).Also(b => b.Margin = new Thickness(0, 0, 8, 8)));
+                actions.Children.Add(Button("Skip this version", () => { Updater.Skip(); _island.ShowNotice("Skipped " + r.Tag); }).Also(b => b.Margin = new Thickness(0, 0, 8, 8)));
+                var n = r.Notes.Replace("\r", "").Trim();
+                notes.Text = n.Length > 700 ? n[..700] + "…" : n;
+                notes.Visibility = n.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            else notes.Visibility = Visibility.Collapsed;
+        }
+        if (_updateHandler != null) Updater.Changed -= _updateHandler;
+        _updateHandler = () => Dispatcher.InvokeAsync(Refresh);
+        Updater.Changed += _updateHandler;
+        Refresh();
+        Add(Section(
+            Row($"Cat Bridge {Updater.CurrentVersion.ToString(3)}", Updater.Installed ? "Installed with the Cat Bridge installer." : "Running from a folder: updates open the download page instead of installing themselves.", null, "\uE896"),
+            Row("Updates", "Automatic installs new versions quietly (the app restarts by itself). Ask me shows a pop-up first.",
+                Segmented(new[] { ("auto", "Automatic"), ("notify", "Ask me"), ("off", "Off") }, _s.UpdateMode, v => { _s.UpdateMode = v; _s.Save(); }), "\uE895"),
+            Pad(new StackPanel { Children = { status, bar, notes, actions } })));
+
         Add(Section(
             Row("Start with Windows", null, Toggle(Autostart.IsEnabled, v => Autostart.Set(v)), ""),
             Row("Settings file", AppSettings.FilePath, Button("Open", () => { try { Process.Start(new ProcessStartInfo("notepad.exe", $"\"{AppSettings.FilePath}\"") { UseShellExecute = true }); } catch { } }), ""),

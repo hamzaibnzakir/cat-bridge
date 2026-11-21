@@ -12,6 +12,18 @@ static class Autostart
         get { try { using var k = Registry.CurrentUser.OpenSubKey(Key); return k?.GetValue(Name) != null; } catch { return false; } }
     }
 
+    /// After an update or a move, point "start with Windows" at this copy of the app.
+    public static void Repair()
+    {
+        try
+        {
+            using var k = Registry.CurrentUser.OpenSubKey(Key, true);
+            if (k?.GetValue(Name) is string v && !v.Contains(Environment.ProcessPath ?? "\u0000", StringComparison.OrdinalIgnoreCase))
+                k.SetValue(Name, $"\"{Environment.ProcessPath}\"");
+        }
+        catch { }
+    }
+
     public static void Set(bool on)
     {
         try

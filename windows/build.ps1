@@ -14,6 +14,15 @@ Copy-Item ..\docs\WINDOWS.md (Join-Path $out "README.md")
 Get-ChildItem $out -Filter *.pdb | Remove-Item
 Get-ChildItem $out -Filter 'opencv_videoio_ffmpeg*.dll' | Remove-Item
 
+# installer (Inno Setup 6)
+$version = ([xml](Get-Content DynamicIsland.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+$iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe", "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($iscc) {
+  & $iscc /Q "/DAppVersion=$version" "/DSourceDir=$out" Installer\CatBridge.iss
+  if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+  Write-Host "Built dist\DynamicIsland-Setup.exe ($version)"
+} else { Write-Warning "Inno Setup 6 not found: skipping the installer (winget install JRSoftware.InnoSetup)" }
+
 $zip = Join-Path $PSScriptRoot 'dist\DynamicIsland-windows.zip'
 if (Test-Path $zip) { Remove-Item $zip }
 Compress-Archive -Path "$out\*" -DestinationPath $zip

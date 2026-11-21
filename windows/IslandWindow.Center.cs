@@ -34,3 +34,15 @@ public partial class IslandWindow
     public void RestartBridge() { StartBridge(); }
     public void ClearNotifications() { _notes.ClearHistory(); NotificationsChanged?.Invoke(); if (_tab == "alerts") RefreshAlerts(); }
 }
+
+public partial class IslandWindow
+{
+    /// "Cat Bridge 2.1.0 is ready" pop-up with Install / Later.
+    public void ShowUpdateToast(Updater.Release r)
+    {
+        ShowToast(new ToastSpec($"Cat Bridge {r.Version.ToString(3)} is ready",
+            Updater.Installed ? "Click to install. It takes a few seconds." : "Click to download it",
+            Glyph: "", Seconds: 10,
+            OnClick: () => _ = Updater.InstallAsync(quiet: false)));
+    }
+}

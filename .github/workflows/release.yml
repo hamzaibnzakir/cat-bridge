@@ -37,5 +37,5 @@ jobs:
         run: |
           ls -la dist
           notes=$(awk -v v="${TAG#v}" '$0 ~ "^## "v {f=1; next} /^## / {f=0} f' CHANGELOG.md)
-          gh release create "$TAG" dist/DynamicIsland-windows.zip dist/CatBridge.ipa \
+          gh release create "$TAG" dist/DynamicIsland-Setup.exe dist/DynamicIsland-windows.zip dist/CatBridge.ipa \
             --target "$GITHUB_SHA" --title "Cat Bridge $TAG" --notes "${notes:-See CHANGELOG.md}"

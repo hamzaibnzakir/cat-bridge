@@ -47,9 +47,12 @@ Built for a Dell Precision 5540 with no Windows Hello camera; it runs on any Win
 ## 🚀 Quick start
 
 ### Windows
-1. Install the [.NET 8 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/8.0).
-2. Download **DynamicIsland-windows.zip** from the [latest release](https://github.com/hamzaibnzakir/cat-bridge/releases/latest). Unzip it somewhere permanent and run `DynamicIsland.exe`.
-3. Double-click the tray icon (or press **Ctrl + Alt + C**) to open **Cat Center**.
+1. Download **DynamicIsland-Setup.exe** from the [latest release](https://github.com/hamzaibnzakir/cat-bridge/releases/latest) and run it. No admin prompt is needed; if .NET 8 is missing, the installer gets it for you.
+2. Open **Cat Center** from the Start menu (or press **Ctrl + Alt + C**).
+3. Updates arrive by themselves: Cat Center → General → Updates.
+
+> [!TIP]
+> Windows SmartScreen may warn about an unrecognised app, because the installer isn't code-signed yet. Choose **More info → Run anyway**. Prefer no installer? Use **DynamicIsland-windows.zip** instead.
 
 ### iPhone (no Mac needed)
 1. Install [Tailscale](https://tailscale.com/download) on the iPhone and the laptop, signed in to the same account.
@@ -108,11 +111,11 @@ cat-bridge/
 
 | | Command | CI |
 |---|---|---|
-| Windows | `cd windows && pwsh ./build.ps1` | `windows.yml` builds the zip on every push |
+| Windows | `cd windows && pwsh ./build.ps1` (needs [Inno Setup 6](https://jrsoftware.org/isinfo.php) for the installer) | `windows.yml` builds the installer and zip on every push |
 | iPhone | `cd ios && xcodegen generate && open CatBridge.xcodeproj` | `ios.yml` builds an unsigned `.ipa` on GitHub's Macs |
 | Core tests | `cd ios/Packages/CatBridgeCore && swift test` | Runs on Linux in CI |
 
-Tag a version (`git tag v2.1.0 && git push --tags`) and **release.yml** publishes both apps to GitHub Releases.
+To publish a version, run **Actions → Release → Run workflow** (or push a `v*` tag). It builds the installer, the zip and the iPhone app, and puts them on GitHub Releases, where the app's auto-updater finds them.
 
 ## ⌨️ Shortcuts
 
