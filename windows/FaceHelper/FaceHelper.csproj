@@ -14,6 +14,7 @@
   <ItemGroup>
     <Compile Include="../FaceId/FaceEngine.cs;../FaceId/FaceLogic.cs;../FaceId/FaceStore.cs;../FaceId/FaceCamera.cs;../FaceId/FaceLog.cs" />
     <Compile Include="../FaceId/SignInSecret.cs" />
+    <Compile Include="../FaceId/PhoneTrust.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="OpenCvSharp4" Version="4.13.0.20261107" />

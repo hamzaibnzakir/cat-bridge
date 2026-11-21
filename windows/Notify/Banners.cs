@@ -22,7 +22,6 @@ public sealed class BannerSpec
     public string? Glyph;              // Segoe Fluent icon when there's no logo
     public Color Tint = Color.FromRgb(0x3A, 0x3A, 0x3F);
     public string? Source;             // "iPhone" badge
-    public Shopify.Order? Order;       // makes it a Shopify sale card
     public string? Footer;
     public Action? OnClick;
     public (string label, Action act)[] Actions = Array.Empty<(string, Action)>();
@@ -73,7 +72,6 @@ public sealed class BannerHost : Window
         if (!IsVisible) { Show(); }
         Place();
         AnimateIn(card);
-        if (b.Order != null && _s.ShopifySound) Chime.Play();
     }
 
     // ───────── one banner ─────────
@@ -87,12 +85,11 @@ public sealed class BannerHost : Window
 
     Card Build(BannerSpec b)
     {
-        bool sale = b.Order != null;
         var card = new Card
         {
             Width = CardWidth, Margin = new Thickness(0, 0, 0, 10), CornerRadius = new CornerRadius(18),
             Background = new SolidColorBrush(Color.FromArgb(0xF2, 0x1E, 0x1E, 0x22)),
-            BorderBrush = new SolidColorBrush(sale ? Color.FromArgb(0x70, 0x95, 0xBF, 0x47) : Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)),
             BorderThickness = new Thickness(1), Padding = new Thickness(13, 12, 14, 12), Cursor = Cursors.Hand,
             Effect = new DropShadowEffect { BlurRadius = 26, ShadowDepth = 6, Direction = 270, Opacity = 0.45, Color = Colors.Black },
             RenderTransform = new TranslateTransform(), Opacity = 0,
@@ -104,8 +101,7 @@ public sealed class BannerHost : Window
 
         // icon
         var icon = new Border { Width = 38, Height = 38, CornerRadius = new CornerRadius(10), VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 1, 11, 0), ClipToBounds = true };
-        if (sale) { icon.Background = new SolidColorBrush(Color.FromRgb(0x95, 0xBF, 0x47)); icon.Child = Glyph("", 19, Brushes.White); }
-        else if (b.Logo != null) { icon.Background = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2E)); icon.Child = new Image { Source = b.Logo, Width = 28, Height = 28 }; }
+        if (b.Logo != null) { icon.Background = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2E)); icon.Child = new Image { Source = b.Logo, Width = 28, Height = 28 }; }
         else if (b.Glyph != null) { icon.Background = new SolidColorBrush(b.Tint); icon.Child = Glyph(b.Glyph, 17, Brushes.White); }
         else
         {
@@ -123,7 +119,7 @@ public sealed class BannerHost : Window
         head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var appLine = new TextBlock { FontSize = 11.5, Foreground = Dim, TextTrimming = TextTrimming.CharacterEllipsis };
-        appLine.Inlines.Add(new System.Windows.Documents.Run(sale ? "SHOPIFY" : b.App.ToUpperInvariant()) { FontWeight = FontWeights.SemiBold });
+        appLine.Inlines.Add(new System.Windows.Documents.Run(b.App.ToUpperInvariant()) { FontWeight = FontWeights.SemiBold });
         if (b.Source != null) appLine.Inlines.Add(new System.Windows.Documents.Run("  ·  " + b.Source));
         head.Children.Add(appLine);
         var when = new TextBlock { Text = "now", FontSize = 11.5, Foreground = Dim, Margin = new Thickness(8, 0, 0, 0) };
@@ -131,24 +127,8 @@ public sealed class BannerHost : Window
         head.Children.Add(when);
         col.Children.Add(head);
 
-        if (sale)
-        {
-            var o = b.Order!;
-            var amount = new TextBlock
-            {
-                Text = o.Amount is decimal a ? Shopify.Format(a, o.Currency) : "New order",
-                FontSize = 22, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush(Color.FromRgb(0xB5, 0xE0, 0x6A)), Margin = new Thickness(0, 3, 0, 0),
-                TextTrimming = TextTrimming.CharacterEllipsis,
-            };
-            col.Children.Add(amount);
-            var who = string.Join(" · ", new[] { o.Number, o.Customer, o.Store }.Where(x => !string.IsNullOrWhiteSpace(x)));
-            col.Children.Add(Line(who.Length > 0 ? who : b.Title, 13, Brushes.White, FontWeights.SemiBold, 1));
-        }
-        else
-        {
-            col.Children.Add(Line(b.Title, 13.5, Brushes.White, FontWeights.SemiBold, 1, top: 2));
-            if (!string.IsNullOrWhiteSpace(b.Body)) col.Children.Add(Line(b.Body, 12.5, Soft, FontWeights.Normal, 3));
-        }
+        col.Children.Add(Line(b.Title, 13.5, Brushes.White, FontWeights.SemiBold, 1, top: 2));
+        if (!string.IsNullOrWhiteSpace(b.Body)) col.Children.Add(Line(b.Body, 12.5, Soft, FontWeights.Normal, 3));
         if (!string.IsNullOrEmpty(b.Footer))
             col.Children.Add(new Border
             {
@@ -178,7 +158,7 @@ public sealed class BannerHost : Window
         card.Child = layer;
 
         // timing: hover pauses, leaving restarts
-        card.Timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(_s.BannerSeconds, 2, 60) + (sale ? 2 : 0)) };
+        card.Timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(_s.BannerSeconds, 2, 60)) };
         card.Timer.Tick += (_, _) => Dismiss(card);
         card.Timer.Start();
         card.MouseEnter += (_, _) => { card.Timer?.Stop(); close.Visibility = Visibility.Visible; actions.Visibility = Visibility.Visible; card.Background = new SolidColorBrush(Color.FromArgb(0xF7, 0x26, 0x26, 0x2B)); };
@@ -309,48 +289,4 @@ public sealed class BannerHost : Window
 
     [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
     [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr h, int i, int v);
-}
-
-/// <summary>A short "cha-ching" made in code (no sound files to ship).</summary>
-static class Chime
-{
-    static byte[]? _wav;
-
-    public static void Play()
-    {
-        try
-        {
-            _wav ??= Make();
-            var p = new SoundPlayer(new MemoryStream(_wav));
-            p.Play();
-        }
-        catch (Exception ex) { App.Log(ex); }
-    }
-
-    static byte[] Make()
-    {
-        const int rate = 44100;
-        var samples = new List<short>();
-        void Tone(double ms, (double f, double a)[] parts, double decay, double gapMs = 0)
-        {
-            int n = (int)(rate * ms / 1000);
-            for (int i = 0; i < n; i++)
-            {
-                double t = (double)i / rate, env = Math.Exp(-decay * t) * Math.Min(1, i / (rate * 0.003));
-                double v = 0; foreach (var (f, a) in parts) v += a * Math.Sin(2 * Math.PI * f * t);
-                samples.Add((short)Math.Clamp(v * env * 9000, short.MinValue, short.MaxValue));
-            }
-            for (int i = 0; i < (int)(rate * gapMs / 1000); i++) samples.Add(0);
-        }
-        Tone(70, new[] { (2637.0, 0.6), (5274.0, 0.25) }, 30, 25);                 // "cha"
-        Tone(520, new[] { (1976.0, 0.55), (2637.0, 0.45), (3951.0, 0.2) }, 7);      // "ching"
-        using var ms = new MemoryStream();
-        using var w = new BinaryWriter(ms);
-        w.Write("RIFF"u8); w.Write(36 + samples.Count * 2); w.Write("WAVE"u8);
-        w.Write("fmt "u8); w.Write(16); w.Write((short)1); w.Write((short)1); w.Write(rate); w.Write(rate * 2); w.Write((short)2); w.Write((short)16);
-        w.Write("data"u8); w.Write(samples.Count * 2);
-        foreach (var s in samples) w.Write(s);
-        w.Flush();
-        return ms.ToArray();
-    }
 }

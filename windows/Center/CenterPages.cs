@@ -44,7 +44,6 @@ public sealed partial class CenterWindow
             var parts = new List<string>();
             parts.Add(_island.OpenWindows.Count == 1 ? "1 app open" : $"{_island.OpenWindows.Count} apps open");
             parts.Add(_island.PhoneSeen > DateTime.Now.AddMinutes(-30) ? "iPhone connected" : "iPhone not seen lately");
-            if (_island.Sales.Orders > 0) parts.Add("Shopify: " + _island.Sales.Summary);
             if (TaskbarHider.Hidden) parts.Add("island is your taskbar");
             summary.Text = string.Join("  ·  ", parts);
         });
@@ -59,13 +58,6 @@ public sealed partial class CenterWindow
             pv.Text = _island.PhoneBattery is int b ? $"{b}%" : "—";
             ps.Text = _island.PhoneFocus != null ? _island.PhoneFocus + " focus"
                 : _island.PhoneSeen == DateTime.MinValue ? "Not connected yet" : "Seen " + Ago(_island.PhoneSeen);
-        });
-        var shop = Tile("", ShopifyGreen, "Shopify today", out var sv, out var ss, () => Go("shopify"));
-        Live(() =>
-        {
-            sv.Text = _island.Sales.Orders == 0 ? "0 orders" : $"{_island.Sales.Orders} order{(_island.Sales.Orders == 1 ? "" : "s")}";
-            var t = _island.Sales.Totals.OrderByDescending(k => k.Value).FirstOrDefault();
-            ss.Text = _island.Sales.Orders == 0 ? "Waiting for the first sale" : t.Key == null ? "" : Notify.Shopify.Format(t.Value, t.Key == "?" ? null : t.Key) + (_island.Sales.Totals.Count > 1 ? " + more" : "");
         });
         var notes = Tile("", Accent, "Notifications", out var nv, out var ns, () => Go("notifications"));
         Live(() =>
@@ -84,7 +76,14 @@ public sealed partial class CenterWindow
         });
         var apps = Tile("", B2(0xBF, 0x5A, 0xF2), "Apps", out var av, out var asub, () => Go("apps"));
         Live(() => { av.Text = _island.OpenWindows.Count.ToString(); asub.Text = TaskbarHider.Hidden ? "Taskbar hidden · island in charge" : "Windows taskbar visible"; });
-        foreach (var t in new[] { laptop, phone, shop, notes, bridge, apps }) grid.Children.Add(t);
+        var bt = Tile("\uE702", Blue, "Bluetooth", out var btv, out var bts);
+        Live(() =>
+        {
+            var d = _island.BluetoothDevices;
+            btv.Text = d.Count == 0 ? "—" : $"{d[0].Percent}%";
+            bts.Text = d.Count == 0 ? "No devices with battery info" : d.Count == 1 ? d[0].Name : $"{d[0].Name} + {d.Count - 1} more";
+        });
+        foreach (var t in new[] { laptop, phone, notes, bridge, apps, bt }) grid.Children.Add(t);
         Add(grid);
 
         Add(Caps("Quick actions"));
@@ -93,7 +92,7 @@ public sealed partial class CenterWindow
             Button("Send clipboard to iPhone", () => _island.SendClipboardToPhone(), glyph: ""),
             Button("Ring my iPhone", () => _island.RingPhone(), glyph: ""),
             Button(TaskbarHider.Hidden ? "Show Windows taskbar" : "Hide Windows taskbar", () => { _island.SetTaskbarHidden(!TaskbarHider.Hidden); Go("home", true); }, glyph: ""),
-            Button("Try a banner", () => _island.TestBanner(false), glyph: "")));
+            Button("Try a banner", () => _island.TestBanner(), glyph: "")));
 
         Add(Caps("Latest notifications"));
         var recent = _island.Notes.History.Take(5).ToList();
@@ -120,13 +119,12 @@ public sealed partial class CenterWindow
     UIElement NoteRow(NotificationItem n)
     {
         bool phone = n.Aumid == "catbridge.iphone";
-        bool shop = Notify.Shopify.IsShopify(n.App, n.Title, n.Body);
         var g = new Grid { Margin = new Thickness(16, 11, 12, 11) };
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var icon = new Border { Width = 34, Height = 34, CornerRadius = new CornerRadius(10), Background = shop ? ShopifyGreen : CardHi, VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Left };
-        icon.Child = n.Logo != null && !shop ? new Image { Source = n.Logo, Width = 22, Height = 22 } : Icon(shop ? "" : phone ? "" : "", 14, Brushes.White);
+        var icon = new Border { Width = 34, Height = 34, CornerRadius = new CornerRadius(10), Background = CardHi, VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Left };
+        icon.Child = n.Logo != null ? new Image { Source = n.Logo, Width = 22, Height = 22 } : Icon(phone ? "\uE8EA" : "\uEA8F", 14, Brushes.White);
         g.Children.Add(icon);
         var st = new StackPanel();
         var head = T((phone ? n.App.Replace("iPhone · ", "") : n.App).ToUpperInvariant() + (phone ? "  ·  FROM IPHONE" : ""), 10.5, Dim, FontWeights.SemiBold, false);
@@ -252,15 +250,15 @@ public sealed partial class CenterWindow
                 Toggle(_s.BannersForWindows, v => { _s.BannersForWindows = v; Save(); }), ""),
             Row("Where", null, Segmented(new[] { ("right", "Top right, like a Mac"), ("center", "Under the island") }, _s.BannerPosition, v => { _s.BannerPosition = v; Save(); }), ""),
             Row("How long", null, Segmented(new[] { ("4", "4 s"), ("6", "6 s"), ("10", "10 s"), ("20", "20 s") }, _s.BannerSeconds.ToString(), v => { _s.BannerSeconds = int.Parse(v); Save(); }), ""),
-            Pad(Buttons(Button("Show a test banner", () => _island.TestBanner(false), primary: true), Button("Show a test sale", () => _island.TestBanner(true))))));
+            Pad(Buttons(Button("Show a test banner", () => _island.TestBanner(), primary: true)))));
 
         Add(Caps("Sign-in screen"));
         var preview = T("", 12.5, Dim, null, true);
-        void Upd() { var t = LockFeedWriter.Compose(_s, _island.Sales); preview.Text = t.Length == 0 ? "(nothing to show right now)" : "Preview: " + t; }
+        void Upd() { var t = LockFeedWriter.Compose(_s); preview.Text = t.Length == 0 ? "(nothing to show right now)" : "Preview: " + t; }
         Upd();
         Add(Section(
             Row("Show a summary on the Cat Face sign-in tile", "Counts are safe for shared spaces. Details also shows which apps messaged you.",
-                Segmented(new[] { ("off", "Off"), ("counts", "Counts"), ("details", "Details") }, _s.LockScreenFeed, v => { _s.LockScreenFeed = v; Save(); LockFeedWriter.Write(_s, _island.Sales); Upd(); }), ""),
+                Segmented(new[] { ("off", "Off"), ("counts", "Counts"), ("details", "Details") }, _s.LockScreenFeed, v => { _s.LockScreenFeed = v; Save(); LockFeedWriter.Write(_s); Upd(); }), ""),
             Pad(preview)));
 
         Add(Caps("Send to your iPhone while you're away"));
@@ -273,7 +271,7 @@ public sealed partial class CenterWindow
 
         Add(Caps("History"));
         var filter = new WrapPanel();
-        filter.Children.Add(Segmented(new[] { ("all", "All"), ("iphone", "iPhone"), ("shopify", "Shopify"), ("windows", "Windows") }, _noteFilter, v => { _noteFilter = v; Go("notifications", true); }));
+        filter.Children.Add(Segmented(new[] { ("all", "All"), ("iphone", "iPhone"), ("windows", "Windows") }, _noteFilter, v => { _noteFilter = v; Go("notifications", true); }));
         var q = Input(_noteQuery, null, 220, "Search");
         q.Margin = new Thickness(10, 0, 0, 0);
         q.TextChanged += (_, _) => { _noteQuery = q.Text; FillNotes(); };
@@ -295,7 +293,6 @@ public sealed partial class CenterWindow
         items = _noteFilter switch
         {
             "iphone" => items.Where(n => n.Aumid == "catbridge.iphone"),
-            "shopify" => items.Where(n => Notify.Shopify.IsShopify(n.App, n.Title, n.Body)),
             "windows" => items.Where(n => n.Aumid != "catbridge.iphone"),
             _ => items,
         };
@@ -304,39 +301,6 @@ public sealed partial class CenterWindow
         var list = items.Take(50).ToList();
         if (list.Count == 0) { _noteList.Children.Add(Box(T("No notifications here.", 13, Dim))); return; }
         _noteList.Children.Add(Section(list.Select(NoteRow).ToArray()));
-    }
-
-    // ═════════════════════════ SHOPIFY ═════════════════════════
-
-    void ShopifyPage()
-    {
-        var grid = new FlowGrid { MinItemWidth = 200, MaxColumns = 3, Margin = new Thickness(0, 0, -12, 0) };
-        var orders = Tile("", ShopifyGreen, "Orders today", out var ov, out var os);
-        Live(() => { ov.Text = _island.Sales.Orders.ToString(); os.Text = DateTime.Now.ToString("dddd d MMMM"); });
-        grid.Children.Add(orders);
-        var totals = _island.Sales.Totals.OrderByDescending(k => k.Value).Take(3).ToList();
-        if (totals.Count == 0) { var t = Tile("", ShopifyGreen, "Sales today", out var tv, out var tsub); tv.Text = "—"; tsub.Text = "No amounts yet"; grid.Children.Add(t); }
-        foreach (var kv in totals) { var t = Tile("", ShopifyGreen, kv.Key == "?" ? "Sales" : "Sales · " + kv.Key, out var tv, out var tsub); tv.Text = Notify.Shopify.Format(kv.Value, kv.Key == "?" ? null : kv.Key); tsub.Text = "Today so far"; grid.Children.Add(t); }
-        Add(grid);
-
-        Add(Section(
-            Row("Sale cards", "Shopify orders get a green card with the amount, the order number and today's total.", Toggle(_s.ShopifyCards, v => { _s.ShopifyCards = v; Save(); }), ""),
-            Row("Cha-ching sound", null, Toggle(_s.ShopifySound, v => { _s.ShopifySound = v; Save(); }), ""),
-            Row("Shopify on the island home", "A small widget with today's orders.", Toggle(_s.Widgets.Contains("sales"), v => { if (v) { if (!_s.Widgets.Contains("sales")) _s.Widgets.Insert(Math.Min(2, _s.Widgets.Count), "sales"); } else _s.Widgets.Remove("sales"); Save(true); }), ""),
-            Pad(Buttons(Button("Show a test sale", () => _island.TestBanner(true), primary: true), Button("Open Shopify admin", () => Open("https://admin.shopify.com/")),
-                Button("Reset today's count", () => { _island.Sales.Reset(); Go("shopify", true); }, danger: true)))));
-
-        Add(Caps("Get your Shopify notifications here"));
-        Add(Box(Steps(
-            "On your iPhone, open the Cat Bridge app once so its Shortcuts actions are available.",
-            "Open Shortcuts → Automation → + → App notification (Notification) → choose Shopify → Run Immediately.",
-            "Add the action \"Send to Laptop\" (from Cat Bridge). Set App to Shopify, and Title and Body to the notification's Title and Body.",
-            "Done. Every new order pops up here with a cha-ching, and the cat celebrates.")));
-
-        Add(Caps("Recent Shopify notifications"));
-        var shop = _island.Notes.History.Where(n => Notify.Shopify.IsShopify(n.App, n.Title, n.Body)).Take(15).ToList();
-        if (shop.Count == 0) Add(Box(T("None yet today.", 13, Dim)));
-        else Add(Section(shop.Select(NoteRow).ToArray()));
     }
 
     static UIElement Steps(params string[] steps)
@@ -379,7 +343,20 @@ public sealed partial class CenterWindow
                     var (ok, msg) = await Tailnet.AllowThroughFirewall(_s.BridgePort);
                     _island.ShowNotice(ok ? "Firewall updated" : "Firewall not changed", msg);
                 }), ""),
+            Row("Stay reachable while plugged in", "Stops Windows from sleeping on power so your iPhone can always wake and unlock it. The screen still turns off.",
+                Toggle(_s.StayAwakeOnPower, v => { _s.StayAwakeOnPower = v; _s.Save(); _island.ApplyStayAwake(); }), "\uE945"),
             Pad(Buttons(Button("Restart bridge", () => { _island.RestartBridge(); Go("iphone", true); }), Button("Open Tailscale admin", () => Open("https://login.tailscale.com/admin/machines"))))));
+
+        // find my laptop
+        Add(Caps("Find my laptop"));
+        var lostMsg = Input(_s.LostMessage, v => { _s.LostMessage = v; _s.Save(); }, placeholder: "e.g. Please call 0803 000 0000. Reward if found.");
+        Add(Section(
+            Row("Location", "The iPhone app shows where the laptop is. Allow location for desktop apps in Windows Settings → Privacy & security → Location.",
+                Button("Location settings", () => Open("ms-settings:privacy-location")), "\uE707"),
+            Row("Lost mode", "Locks the laptop and shows your message on screen and on the sign-in tile. You can turn it on from the iPhone too.",
+                Toggle(_s.LostMode, v => _island.SetLostMode(v, null)), "\uE72E"),
+            Stacked("Message", null, lostMsg),
+            Pad(Buttons(Button("Test the alarm sound", () => _island.StartAlarm()), Button("Stop", () => _island.StopAlarm())))));
 
         // pairing
         Add(Caps("Pair the Cat Bridge iPhone app"));
@@ -482,11 +459,65 @@ public sealed partial class CenterWindow
         return bi;
     }
 
+    // ═════════════════════════ FOCUS ═════════════════════════
+
+    void FocusPage()
+    {
+        var st = _island.GetFocusStats();
+        var grid = new FlowGrid { MinItemWidth = 190, MaxColumns = 4, Margin = new Thickness(0, 0, -12, 0) };
+        var t1 = Tile("\uE916", Accent, "Today", out var v1, out var s1); v1.Text = $"{st.TodayMinutes:0} min"; s1.Text = $"{st.TodaySessions} session{(st.TodaySessions == 1 ? "" : "s")}";
+        var t2 = Tile("\uE787", Blue, "This week", out var v2, out var s2); v2.Text = st.WeekMinutes >= 60 ? $"{st.WeekMinutes / 60:0.#} h" : $"{st.WeekMinutes:0} min"; s2.Text = $"{st.Completed} finished in full";
+        var t3 = Tile("\uE945", Yellow, "Streak", out var v3, out var s3); v3.Text = $"{st.Streak} day{(st.Streak == 1 ? "" : "s")}"; s3.Text = st.Streak > 0 ? "Keep it going" : "Start one today";
+        foreach (var t in new[] { t1, t2, t3 }) grid.Children.Add(t);
+        Add(grid);
+
+        // weekly bars
+        var bars = new Grid { Height = 170, Margin = new Thickness(0, 4, 0, 0) };
+        double max = Math.Max(30, st.Week.Max());
+        for (int i = 0; i < 7; i++)
+        {
+            bars.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var col = new Grid();
+            col.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            col.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var h = st.Week[i] / max * 120;
+            var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom };
+            stack.Children.Add(T(st.Week[i] > 0 ? $"{st.Week[i]:0}" : "", 11.5, Dim, null, false).Also(x => x.HorizontalAlignment = HorizontalAlignment.Center));
+            stack.Children.Add(new Border { Height = Math.Max(4, h), Width = 26, CornerRadius = new CornerRadius(7, 7, 3, 3), Margin = new Thickness(0, 4, 0, 0),
+                Background = i == 6 ? Accent : new SolidColorBrush(Color.FromArgb(0x70, 0xFF, 0xB3, 0x7A)), HorizontalAlignment = HorizontalAlignment.Center });
+            col.Children.Add(stack);
+            var lab = T(st.WeekLabels[i], 11.5, i == 6 ? Text : Dim, null, false, new Thickness(0, 6, 0, 0)); lab.HorizontalAlignment = HorizontalAlignment.Center;
+            Grid.SetRow(lab, 1); col.Children.Add(lab);
+            Grid.SetColumn(col, i); bars.Children.Add(col);
+        }
+        Add(Box(new StackPanel { Children = { T("Minutes of focus, last 7 days", 13, Dim), bars } }));
+
+        Add(Caps("Start"));
+        Add(Buttons(
+            Button($"Focus {_s.PomodoroMinutes} min", () => { _island.StartFocus(_s.PomodoroMinutes); Go("focus", true); }, primary: true, glyph: "\uE708"),
+            Button("50 min", () => { _island.StartFocus(50); Go("focus", true); }),
+            Button("90 min", () => { _island.StartFocus(90); Go("focus", true); }),
+            Button("Stop", () => { _island.EndFocus(false); Go("focus", true); }, danger: true)));
+
+        Add(Caps("On the laptop"));
+        Add(Section(
+            Row("Hold notifications during focus", "Banners and pop-ups wait quietly in Alerts; you get one summary when you're done.", Toggle(_s.FocusSilence, v => { _s.FocusSilence = v; _s.Save(); }), "\uE7ED"),
+            Row("Pomodoro length", null, Segmented(new[] { ("15", "15"), ("25", "25"), ("45", "45"), ("60", "60") }, Nearest(_s.PomodoroMinutes, 15, 25, 45, 60), v => { _s.PomodoroMinutes = int.Parse(v); _s.Save(); }), "\uE916")));
+
+        Add(Caps("With your iPhone"));
+        Add(Section(
+            Row("Follow my iPhone's Focus", "When Focus turns on on your iPhone (via the Update Laptop automation), the laptop goes quiet too.", Toggle(_s.FollowPhoneFocus, v => { _s.FollowPhoneFocus = v; _s.Save(); }), "\uE8EA"),
+            Row("...and start a Pomodoro", null, Toggle(_s.PhoneFocusStartsTimer, v => { _s.PhoneFocusStartsTimer = v; _s.Save(); }), "\uE916"),
+            Row("Tap my iPhone when focus starts here", "iOS doesn't let apps switch Focus, so the laptop sends a Bark alert; tap it to run your Shortcut.", Toggle(_s.FocusTapsPhone, v => { _s.FocusTapsPhone = v; _s.Save(); }), "\uEA8F"),
+            Stacked("Shortcut that turns Focus on", "Make it in Shortcuts: one action, Set Focus → Work → On.", Input(_s.FocusShortcutOn, v => { _s.FocusShortcutOn = v.Trim(); _s.Save(); })),
+            Stacked("Shortcut that turns Focus off", null, Input(_s.FocusShortcutOff, v => { _s.FocusShortcutOff = v.Trim(); _s.Save(); }))));
+    }
+
     // ═════════════════════════ ISLAND ═════════════════════════
 
     static readonly (string id, string name, string glyph)[] WidgetNames =
     {
-        ("media", "Now playing (with lyrics)", ""), ("iphone", "iPhone", ""), ("sales", "Shopify today", ""), ("system", "CPU, RAM and GPU", ""),
+        ("media", "Now playing (with lyrics)", ""), ("iphone", "iPhone", ""), ("system", "CPU, RAM and GPU", ""),
         ("battery", "Battery and Wi-Fi", ""), ("sound", "Sound and brightness", ""), ("alerts", "Notifications", ""),
         ("timer", "Focus timer", ""), ("shelf", "Shelf and clipboard", ""), ("servers", "Servers", ""),
     };
@@ -569,7 +600,7 @@ public sealed partial class CenterWindow
             {
                 T("• Click it for a menu: focus timer, play/pause, open the island, find my iPhone.", 13, Dim),
                 T("• Drag it anywhere. Drop files on it to put them on the shelf.", 13, Dim, null, true, new Thickness(0, 6, 0, 0)),
-                T("• It looks up for notifications, celebrates Shopify sales, and gets sleepy when your battery is low.", 13, Dim, null, true, new Thickness(0, 6, 0, 0)),
+                T("• It looks up for notifications, and gets sleepy when your battery is low.", 13, Dim, null, true, new Thickness(0, 6, 0, 0)),
             }
         }));
     }
@@ -583,6 +614,17 @@ public sealed partial class CenterWindow
             Row("Files from your iPhone", recv, Button("Open folder", () => { Directory.CreateDirectory(recv); Open(recv); }), ""),
             Row("Clipboard history", "Keeps what you copy so you can paste it again from the island.", Toggle(_s.ClipboardHistory, v => { _s.ClipboardHistory = v; Save(); }), ""),
             Row("Paste when picked", "Clicking a clipboard item pastes it straight into your app.", Toggle(_s.ClipboardAutoPaste, v => { _s.ClipboardAutoPaste = v; Save(); }), "")));
+
+        Add(Caps("Screen"));
+        Add(Section(
+            Row("Copy text from anything on screen", "Press Ctrl + Alt + T, then drag over the text: a picture, a video, a PDF, an app. Works offline.", Button("Try it", () => _island.CaptureText(), primary: true), "\uE8C8"),
+            Row("Screenshot to the shelf", "Ctrl + Alt + S, then drag. Saved to Pictures\\Screenshots\\Cat Bridge and copied.", Button("Take one", () => _island.CaptureScreenshot()), "\uE722"),
+            Row("Put my other screenshots on the shelf", "Win + Shift + S and Print Screen shots are saved and shelved too.", Toggle(_s.ScreenshotShelf, v => { _s.ScreenshotShelf = v; _s.Save(); }), "\uE7B8")));
+
+        Add(Caps("Downloads"));
+        Add(Section(
+            Row("Show downloads in the pill", "Edge, Chrome, Firefox, Brave and Opera downloads, with speed; a pop-up when they finish.", Toggle(_s.ShowDownloads, v => { _s.ShowDownloads = v; _s.Save(); _island.ShowNotice("Restart Cat Bridge to apply"); }), "\uE896"),
+            Row("Put finished downloads on the shelf", null, Toggle(_s.DownloadsToShelf, v => { _s.DownloadsToShelf = v; _s.Save(); }), "\uE8B7")));
 
         Add(Caps($"On the shelf · {_island.Shelf.Paths.Count}"));
         var rows = _island.Shelf.Paths.Select(p =>
@@ -623,6 +665,38 @@ public sealed partial class CenterWindow
                 {
                     if (MessageBox.Show(this, "Delete your saved face? You can set it up again any time.", "Face unlock", MessageBoxButton.OKCancel) == MessageBoxResult.OK) { FaceId.FaceStore.Delete(); Go("face", true); }
                 }, danger: true)))));
+        // ── unlock with iPhone ──
+        Add(Caps("Unlock with your iPhone"));
+        var phones = Shared.PhoneTrust.Load();
+        var rows = new List<UIElement>();
+        if (_island.PendingUnlockPhone is { } req)
+        {
+            var result = T("", 12.5, Dim);
+            var box = new StackPanel();
+            box.Children.Add(T($"{req.Name} wants to unlock this PC", 15, Text, FontWeights.SemiBold));
+            box.Children.Add(T("Only allow it if your iPhone shows the same code:", 13, Dim, null, true, new Thickness(0, 4, 0, 10)));
+            box.Children.Add(T(req.Code[..3] + " " + req.Code[3..], 34, Accent, FontWeights.Bold, false).Also(t => t.FontFamily = new FontFamily("Cascadia Mono, Consolas")));
+            box.Children.Add(Buttons(
+                Button("Allow", async () => { result.Text = "Waiting for the admin prompt…"; var (ok, msg) = await _island.AllowUnlockPhone(); result.Text = msg; result.Foreground = ok ? Green : Red; if (ok) Go("face", true); }, primary: true, glyph: "\uE73E"),
+                Button("Don't allow", () => _island.DenyUnlockPhone(), danger: true)).Also(w => w.Margin = new Thickness(0, 14, 0, 0)));
+            box.Children.Add(result);
+            Add(Box(box, new Thickness(20)).Also(b => { b.BorderBrush = Accent; b.Margin = new Thickness(0, 0, 0, 12); }));
+        }
+        foreach (var p in phones)
+        {
+            var ph = p;
+            rows.Add(Row(p.Name, "Can unlock this PC with Face ID · added " + (DateTime.TryParse(p.Added, out var d) ? d.ToLocalTime().ToString("d MMM yyyy") : p.Added),
+                Button("Remove", async () => { var (ok, msg) = await _island.RemoveUnlockPhone(ph.Id); _island.ShowNotice(ok ? "Removed " + ph.Name : "Not removed", ok ? null : msg); Go("face", true); }, danger: true), "\uE8EA"));
+        }
+        if (phones.Count == 0)
+            rows.Add(Pad(Steps(
+                "Turn on Cat Face on the sign-in screen above (your iPhone unlocks through it).",
+                "In the Cat Bridge iPhone app: Settings → Unlock laptop with Face ID → Set up.",
+                "Check the code on the iPhone matches the one shown here, then press Allow.",
+                "Lock the laptop and tap Unlock laptop on the iPhone, or press \"Unlock with my iPhone\" on the lock screen.")));
+        rows.Add(Pad(T("Your iPhone keeps a key in its Secure Enclave that only works after Face ID. The lock screen checks its signature itself, so nothing else on this PC can fake an unlock. It works while you're signed in and the PC is locked; after a restart, sign in once with Cat Face or your password.", 12.5, Dim)));
+        Add(Section(rows.ToArray()));
+
         Add(Caps("How it keeps you safe"));
         Add(Box(new StackPanel
         {
@@ -714,7 +788,9 @@ public sealed partial class CenterWindow
             Row("Open or pin the island", null, Pill("Ctrl + Alt + Space", Text), ""),
             Row("Search and open apps", null, Pill("Ctrl + Alt + A", Text), ""),
             Row("Open Cat Center", null, Pill("Ctrl + Alt + C", Text), ""),
-            Row("Hide or show the island", null, Pill("Ctrl + Alt + H", Text), "")));
+            Row("Hide or show the island", null, Pill("Ctrl + Alt + H", Text), ""),
+            Row("Copy text from the screen", null, Pill("Ctrl + Alt + T", Text), "\uE8C8"),
+            Row("Screenshot to the shelf", null, Pill("Ctrl + Alt + S", Text), "\uE722")));
 
         var v = typeof(App).Assembly.GetName().Version;
         Add(Caps("About"));

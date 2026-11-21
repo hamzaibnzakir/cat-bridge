@@ -100,6 +100,7 @@ namespace DynamicIsland.FaceSignIn
                     s = _showPassword ? _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE : _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
                     if (_showPassword) i = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_FOCUSED;
                     break;
+                case Fields.UsePhone: s = _provider.Phone != null ? _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE : _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN; break;
                 case Fields.Submit: s = _showPassword ? _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE : _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN; break;
                 default: s = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN; return HR.E_INVALIDARG;
             }
@@ -114,6 +115,7 @@ namespace DynamicIsland.FaceSignIn
                 case Fields.Status: ppsz = _status; return HR.S_OK;
                 case Fields.Feed: ppsz = _feed; return HR.S_OK;
                 case Fields.UsePassword: ppsz = "Use my password instead"; return HR.S_OK;
+                case Fields.UsePhone: ppsz = "Unlock with my iPhone"; return HR.S_OK;
                 case Fields.Password: ppsz = _typed; return HR.S_OK;
                 default: ppsz = ""; return HR.E_INVALIDARG;
             }
@@ -141,6 +143,13 @@ namespace DynamicIsland.FaceSignIn
 
         public int CommandLinkClicked(uint id)
         {
+            if (id == Fields.UsePhone)
+            {
+                if (_provider.Phone == null) { SetStatus("No iPhone is set up to unlock this PC yet."); return HR.S_OK; }
+                _provider.Phone.Wanted = true;
+                SetStatus("Check your iPhone and look at it to unlock…");
+                return HR.S_OK;
+            }
             if (id != Fields.UsePassword) return HR.E_INVALIDARG;
             StopHelper();
             ShowPassword("Type your password");
@@ -277,6 +286,15 @@ namespace DynamicIsland.FaceSignIn
             var p = _helper; _helper = null;
             try { if (p != null && !p.HasExited) p.Kill(); } catch { }
             try { p?.Dispose(); } catch { }
+        }
+
+        /// A trusted iPhone signed this PC's challenge after Face ID: sign in with the saved credential.
+        internal void PhoneApproved(string phoneName)
+        {
+            StopHelper();
+            _faceOk = true;
+            SetStatus("Unlocked with " + phoneName);
+            _provider.RaiseCredentialsChanged(); // LogonUI re-asks, sees auto-logon, calls GetSerialization
         }
 
         void SetStatus(string s)

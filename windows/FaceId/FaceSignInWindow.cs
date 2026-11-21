@@ -254,7 +254,7 @@ public sealed class FaceSignInWindow : Window
         return (msg, fullName);
     }
 
-    static async Task<(bool ok, string msg)> RunElevated(string args)
+    public static async Task<(bool ok, string msg)> RunElevated(string args)
     {
         var helper = Path.Combine(AppContext.BaseDirectory, "FaceHelper.exe");
         if (!File.Exists(helper)) return (false, "FaceHelper.exe is missing from the app folder.");

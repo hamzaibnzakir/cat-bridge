@@ -14,7 +14,6 @@ enum Theme {
     static let red = Color(red: 1.0, green: 0.36, blue: 0.33)
     static let yellow = Color(red: 1.0, green: 0.84, blue: 0.04)
     static let blue = Color(red: 0.25, green: 0.6, blue: 1.0)
-    static let shopify = Color(red: 0.58, green: 0.75, blue: 0.28)
 }
 
 struct CardBox<Content: View>: View {

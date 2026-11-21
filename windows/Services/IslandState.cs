@@ -77,6 +77,9 @@ public sealed class IslandState
     public void TogglePin(DateTime now) { Pinned = !Pinned; _lastInside = now; }
     public void Unpin() => Pinned = false;
 
+    /// Close now (e.g. before a screenshot), whatever opened it.
+    public void ForceCollapse() { Pinned = false; HoverOpen = false; Typing = false; }
+
     /// Open as if hovered (e.g. after tapping a track toast or dropping a file) — closes normally when you leave.
     public void OpenSoft(DateTime now) { HoverOpen = true; _lastInside = now; }
 

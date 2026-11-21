@@ -7,7 +7,7 @@ using System.Text;
 namespace DynamicIsland.Notify;
 
 /// <summary>
-/// Writes the one-line summary the Cat Face sign-in tile shows ("Shopify: 4 orders · $312 today · 3 new notifications").
+/// Writes the one-line summary the Cat Face sign-in tile shows ("3 new notifications (WhatsApp, Mail)").
 /// Counts reset when you unlock. "details" also shows the latest senders; "off" clears it.
 /// </summary>
 public static class LockFeedWriter
@@ -15,6 +15,8 @@ public static class LockFeedWriter
     public static string FilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "DynamicIsland", "LockScreen", "feed.txt");
 
     static int _sinceUnlock;
+    /// Set by lost mode: shown on the sign-in tile instead of the summary.
+    public static string? LostMessage;
     static readonly List<string> _recent = new();
 
     public static void Unlocked() { _sinceUnlock = 0; _recent.Clear(); }
@@ -26,11 +28,11 @@ public static class LockFeedWriter
         if (_recent.Count > 6) _recent.RemoveAt(_recent.Count - 1);
     }
 
-    public static string Compose(AppSettings s, SalesTally sales)
+    public static string Compose(AppSettings s)
     {
         if (s.LockScreenFeed == "off") return "";
         var parts = new List<string>();
-        if (sales.Orders > 0) parts.Add("Shopify: " + sales.Summary + " today");
+        if (LostMessage is { Length: > 0 } lost) return lost; // lost mode wins
         if (_sinceUnlock > 0)
         {
             var n = $"{_sinceUnlock} new notification{(_sinceUnlock == 1 ? "" : "s")}";
@@ -44,11 +46,11 @@ public static class LockFeedWriter
         return string.Join("  ·  ", parts);
     }
 
-    public static void Write(AppSettings s, SalesTally sales)
+    public static void Write(AppSettings s)
     {
         try
         {
-            var text = Compose(s, sales);
+            var text = Compose(s);
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
             if (File.Exists(FilePath) && File.ReadAllText(FilePath, Encoding.UTF8) == text) { File.SetLastWriteTimeUtc(FilePath, DateTime.UtcNow); return; }
             File.WriteAllText(FilePath, text, new UTF8Encoding(false));

@@ -11,6 +11,7 @@ struct RootView: View {
             if model.isPaired {
                 TabView {
                     HomeView().tabItem { Label("Laptop", systemImage: "laptopcomputer") }
+                    RemoteView().tabItem { Label("Remote", systemImage: "hand.point.up.left") }
                     AlertsView().tabItem { Label("Alerts", systemImage: "bell.badge") }
                     FilesView().tabItem { Label("Files", systemImage: "folder") }
                     SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }

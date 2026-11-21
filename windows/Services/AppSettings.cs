@@ -28,7 +28,7 @@ public sealed class AppSettings
     public int BreakReminderMinutes { get; set; } = 50;
 
     /// <summary>Widgets on the island's home, in order: media, system, battery, sound, alerts, timer, shelf, servers.</summary>
-    public List<string> Widgets { get; set; } = new() { "media", "iphone", "sales", "system", "battery", "sound", "alerts", "timer", "shelf" };
+    public List<string> Widgets { get; set; } = new() { "media", "iphone", "system", "battery", "sound", "alerts", "timer", "shelf" };
 
     /// <summary>Hermes features (prompt, queue, command center) are parked for now.</summary>
     public bool HermesEnabled { get; set; } = false;
@@ -52,6 +52,33 @@ public sealed class AppSettings
     public string BarkEncryptIv { get; set; } = "";
     public string BarkSound { get; set; } = "";
 
+    /// <summary>While plugged in, keep Windows from sleeping so your iPhone can always reach it (the screen still turns off).</summary>
+    public bool StayAwakeOnPower { get; set; } = false;
+
+    // ── focus (both devices) ──
+    /// <summary>Hold banners and pop-ups during focus (they wait in Alerts).</summary>
+    public bool FocusSilence { get; set; } = true;
+    /// <summary>Your iPhone's Focus (via the Update Laptop automation) also puts the laptop in focus.</summary>
+    public bool FollowPhoneFocus { get; set; } = true;
+    /// <summary>...and starts a Pomodoro timer.</summary>
+    public bool PhoneFocusStartsTimer { get; set; } = false;
+    public int PomodoroMinutes { get; set; } = 25;
+    /// <summary>Starting focus on the laptop taps your iPhone (via Bark) to run a Shortcut that turns its Focus on.</summary>
+    public bool FocusTapsPhone { get; set; } = true;
+    public string FocusShortcutOn { get; set; } = "Cat Focus On";
+    public string FocusShortcutOff { get; set; } = "Cat Focus Off";
+
+    /// <summary>Screenshots you take (Win+Shift+S, Print Screen) are saved and put on the shelf.</summary>
+    public bool ScreenshotShelf { get; set; } = true;
+
+    public bool ShowDownloads { get; set; } = true;
+    public bool DownloadsToShelf { get; set; } = false;
+    public bool ShowBluetoothBattery { get; set; } = true;
+
+    // ── find my laptop ──
+    public bool LostMode { get; set; } = false;
+    public string LostMessage { get; set; } = "";
+
     // ── updates ──
     /// <summary>auto = download and install new versions quietly; notify = ask first; off = never check.</summary>
     public string UpdateMode { get; set; } = "notify";
@@ -73,8 +100,6 @@ public sealed class AppSettings
     /// <summary>right (like a Mac) or center (under the island).</summary>
     public string BannerPosition { get; set; } = "right";
     public int BannerSeconds { get; set; } = 6;
-    public bool ShopifyCards { get; set; } = true;
-    public bool ShopifySound { get; set; } = true;
     /// <summary>What the Cat Face sign-in tile shows: off | counts | details.</summary>
     public string LockScreenFeed { get; set; } = "counts";
 
@@ -172,11 +197,11 @@ public sealed class AppSettings
             if (s.Widgets != null && !s.Widgets.Contains("iphone")) s.Widgets.Insert(Math.Min(1, s.Widgets.Count), "iphone");
             s.SettingsVersion = 5;
         }
-        if (s.SettingsVersion < 6)
+        if (s.SettingsVersion < 7)
         {
-            // v2.0: Shopify sales widget on the island home
-            if (s.Widgets != null && !s.Widgets.Contains("sales")) s.Widgets.Insert(Math.Min(2, s.Widgets.Count), "sales");
-            s.SettingsVersion = 6;
+            // v2.2: Shopify is an ordinary notification now (no separate widget)
+            s.Widgets?.Remove("sales");
+            s.SettingsVersion = 7;
         }
         if (string.IsNullOrWhiteSpace(s.BridgeKey) || s.BridgeKey.Length < 32) s.BridgeKey = Bridge.BridgeServer.NewKey();
         s.Save(); // writes any newly added settings back so they show up in the file

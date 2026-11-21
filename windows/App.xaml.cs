@@ -41,7 +41,6 @@ public partial class App : Application
         // the desktop cat reacts to what the island sees
         win.TimerFinished += () => { _pet?.React("happy"); _pet?.Say("Time's up! Nice focus session.", 6); };
         win.NotificationShown += _ => _pet?.React("alert");
-        win.Sale += (amount, cur) => { _pet?.React("happy"); _pet?.Say(amount is decimal a ? $"Cha-ching! {Notify.Shopify.Format(a, cur)}" : "Cha-ching! New order!", 5); };
         win.PowerEvent += (ev, pct) =>
         {
             if (ev is "low20" or "low10") { _pet?.React("tired"); _pet?.Say($"Battery's at {pct}%. Plug me in?", 7); }

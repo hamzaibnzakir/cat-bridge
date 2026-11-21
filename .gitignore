@@ -7,6 +7,7 @@ build/
 *.ipa
 *.xcarchive
 ios/CatBridge/Info.plist
+ios/ShareExtension/Info.plist
 .DS_Store
 
 # Windows build output

@@ -14,7 +14,7 @@ using static DynamicIsland.Center.Ui;
 namespace DynamicIsland.Center;
 
 /// <summary>
-/// Cat Center: the desktop app for everything — settings, iPhone, notifications, Shopify, apps, files, face unlock.
+/// Cat Center: the desktop app for everything — settings, iPhone, notifications, apps, files, face unlock.
 /// Sidebar on the left (shrinks to icons on narrow windows), one scrolling page on the right.
 /// </summary>
 public sealed partial class CenterWindow : Window
@@ -41,12 +41,12 @@ public sealed partial class CenterWindow : Window
         ("home", "", "Home", "Everything at a glance"),
         ("apps", "", "Apps and taskbar", "Run the island as your taskbar"),
         ("notifications", "", "Notifications", "Mac-style banners, forwarding and the sign-in screen"),
-        ("shopify", "", "Shopify", "Your orders as they come in"),
         ("iphone", "", "iPhone", "Cat Bridge over Tailscale, alerts with Bark"),
         ("island", "", "Island", "Widgets, colours and timing"),
         ("cat", "", "Desktop cat", "Your little helper on the taskbar line"),
         ("files", "", "Files and clipboard", "The shelf and what your iPhone sends"),
-        ("face", "", "Face unlock", "Sign in with your face"),
+        ("focus", "\uE708", "Focus", "One focus for your laptop and iPhone"),
+        ("face", "", "Face unlock", "Sign in with your face, or with your iPhone"),
         ("servers", "", "Servers", "Watch your VPS and tunnels"),
         ("general", "", "General", "Start-up, shortcuts and about"),
     };
@@ -105,12 +105,14 @@ public sealed partial class CenterWindow : Window
         SourceInitialized += (_, _) => DarkChrome();
         _live.Tick += (_, _) => { foreach (var u in _liveUpdaters.ToList()) { try { u(); } catch (Exception ex) { App.Log(ex); } } };
         _live.Start();
-        Closed += (_, _) => { _live.Stop(); _open = null; if (_updateHandler != null) Updater.Changed -= _updateHandler; _island.NotificationsChanged -= OnNotes; _island.WindowsChanged -= OnWindows; };
+        Closed += (_, _) => { _live.Stop(); _open = null; if (_updateHandler != null) Updater.Changed -= _updateHandler; _island.NotificationsChanged -= OnNotes; _island.WindowsChanged -= OnWindows; _island.UnlockPhonesChanged -= OnPhones; };
+        _island.UnlockPhonesChanged += OnPhones;
         _island.NotificationsChanged += OnNotes;
         _island.WindowsChanged += OnWindows;
     }
 
-    void OnNotes() => Dispatcher.InvokeAsync(() => { if (_current is "home" or "notifications" or "shopify") Go(_current, keepScroll: true); });
+    void OnNotes() => Dispatcher.InvokeAsync(() => { if (_current is "home" or "notifications") Go(_current, keepScroll: true); });
+    void OnPhones() => Dispatcher.InvokeAsync(() => { if (_current == "face") Go("face", keepScroll: true); });
     void OnWindows() => Dispatcher.InvokeAsync(() => { if (_current == "apps") Go(_current, keepScroll: true); });
 
     Border NavItem(string id, string glyph, string label)
@@ -182,12 +184,12 @@ public sealed partial class CenterWindow : Window
             case "home": HomePage(); break;
             case "apps": AppsPage(); break;
             case "notifications": NotificationsPage(); break;
-            case "shopify": ShopifyPage(); break;
             case "iphone": IPhonePage(); break;
             case "island": IslandPage(); break;
             case "cat": CatPage(); break;
             case "files": FilesPage(); break;
             case "face": FacePage(); break;
+            case "focus": FocusPage(); break;
             case "servers": ServersPage(); break;
             case "general": GeneralPage(); break;
         }

@@ -21,9 +21,7 @@ public partial class IslandWindow
     // ───────── things the desktop cat can ask for ─────────
     public void StartFocus(int minutes)
     {
-        _timerTotal = TimeSpan.FromMinutes(minutes);
-        _timerEnd = DateTime.Now + _timerTotal;
-        RefreshTimer(); UpdateCompact(); UpdateTimers();
+        BeginFocus(minutes);
         ShowToast(new ToastSpec($"{minutes}-minute focus started", "The cat will let you know when it's done", Glyph: "", Seconds: 2.5));
     }
 
@@ -110,7 +108,7 @@ public partial class IslandWindow
     // ───────── widget home ─────────
 
     readonly List<Action> _homeUpdaters = new();
-    static readonly string[] KnownWidgets = { "media", "iphone", "sales", "system", "battery", "sound", "alerts", "timer", "shelf", "servers" };
+    static readonly string[] KnownWidgets = { "media", "iphone", "system", "battery", "sound", "alerts", "timer", "shelf", "servers" };
 
     void BuildHome()
     {
@@ -215,7 +213,6 @@ public partial class IslandWindow
         {
             case "media": return MediaWidget();
             case "iphone": return PhoneWidget();
-            case "sales": return SalesWidget();
             case "system":
             {
                 var lead = RingLead(out var ring, out var c);

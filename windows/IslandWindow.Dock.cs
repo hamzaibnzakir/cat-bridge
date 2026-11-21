@@ -380,6 +380,8 @@ public partial class IslandWindow
         tools.Children.Add(Tool("", "Alerts", WindowList.NotificationCenter));
         tools.Children.Add(Tool("", "Quick settings", WindowList.QuickSettings));
         if (TaskbarHider.Hidden) tools.Children.Add(Tool("", "Tray icons", () => TaskbarHider.Peek()));
+        tools.Children.Add(Tool("\uE8C8", "Copy text", CaptureText));
+        tools.Children.Add(Tool("\uE722", "Screenshot", CaptureScreenshot));
         tools.Children.Add(Tool("\uE713", "Cat Center", () => Center.CenterWindow.Open(this)));
         tools.Children.Add(Tool(TaskbarHider.Hidden ? "" : "", TaskbarHider.Hidden ? "Show taskbar" : "Hide taskbar", () => SetTaskbarHidden(!TaskbarHider.Hidden)));
         root.Children.Add(tools);

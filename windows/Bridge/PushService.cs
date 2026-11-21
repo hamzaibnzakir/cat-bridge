@@ -36,8 +36,8 @@ public sealed class PushService
         if (!BarkReady) return;
         var msg = new Bark.Message(title, body,
             Group: kind == "alert" ? "Laptop alerts" : kind is "text" or "link" ? "From laptop" : "Laptop",
-            Url: kind == "link" ? url : null,
-            Level: kind is "ring" or "alert" ? "timeSensitive" : "active",
+            Url: kind is "link" or "unlock" ? url : null,
+            Level: kind is "ring" or "alert" or "unlock" ? "timeSensitive" : "active",
             Copy: kind == "text" ? body : null,
             Sound: kind == "ring" ? "alarm" : string.IsNullOrWhiteSpace(_s.BarkSound) ? null : _s.BarkSound,
             Call: kind == "ring");

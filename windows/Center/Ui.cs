@@ -21,7 +21,7 @@ public static class Ui
     public static readonly Brush Bg = B(0x0E, 0x0E, 0x10), Side = B(0x14, 0x14, 0x17), Card = B(0x18, 0x18, 0x1B), CardHi = B(0x20, 0x20, 0x24),
         Edge = B(0x26, 0x26, 0x2B), Field = B(0x10, 0x10, 0x12), Text = B(0xF2, 0xF2, 0xF4), Dim = B(0x9A, 0x9A, 0xA2), Faint = B(0x62, 0x62, 0x69),
         Accent = new SolidColorBrush(AccentColor), OnAccent = B(0x1A, 0x10, 0x08), Green = B(0x30, 0xD1, 0x58), Red = B(0xFF, 0x45, 0x3A),
-        Yellow = B(0xFF, 0xD6, 0x0A), ShopifyGreen = B(0x95, 0xBF, 0x47), Blue = B(0x0A, 0x84, 0xFF);
+        Yellow = B(0xFF, 0xD6, 0x0A), Blue = B(0x0A, 0x84, 0xFF);
     public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");
     public static readonly FontFamily Font = new("Segoe UI Variable Text, Segoe UI");
     public static readonly FontFamily Display = new("Segoe UI Variable Display, Segoe UI");
@@ -266,7 +266,7 @@ public static class Ui
 
     public static Ellipse Dot(Brush b, double size = 8) => new() { Width = size, Height = size, Fill = b, VerticalAlignment = VerticalAlignment.Center };
 
-    /// Big number tile used on Home and Shopify.
+    /// Big number tile used on Home.
     public static Border Tile(string glyph, Brush glyphColor, string label, out TextBlock value, out TextBlock sub, Action? onClick = null)
     {
         var st = new StackPanel();
