@@ -78,9 +78,10 @@ final class ShareModel {
     }
 
     nonisolated private static func copyFile(_ p: NSItemProvider, type: String) async -> Item? {
-        await withCheckedContinuation { cont in
+        let suggested = p.suggestedName
+        return await withCheckedContinuation { cont in
             p.loadFileRepresentation(forTypeIdentifier: type) { url, _ in
-                cont.resume(returning: url.flatMap { copy($0, suggested: p.suggestedName) })
+                cont.resume(returning: url.flatMap { copy($0, suggested: suggested) })
             }
         }
     }

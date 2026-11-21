@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.0
+- **Unlock with your iPhone:** Face ID on the iPhone unlocks the locked laptop. Set it up in the iPhone app (Settings), then press Allow in Cat Center after checking the 6-digit code. Or press "Unlock with my iPhone" on the lock screen and tap the alert on your phone.
+- **Wake from the iPhone:** the screen turns on from anywhere over Tailscale. Wake-on-LAN works on the same Wi-Fi. A new "stay reachable while plugged in" option keeps the laptop awake.
+- **iPhone trackpad and keyboard:** a new Remote tab with the trackpad, typing, shortcut keys, volume and play controls.
+- **Share sheet:** "Send to Laptop" from Safari, Photos, Files or any app.
+- **Find my laptop:** map location, a loud alarm, and lost mode (a message on screen and on the sign-in tile).
+- **Copy text from anything on screen** (Ctrl + Alt + T) and **screenshots to the shelf** (Ctrl + Alt + S, plus Win + Shift + S).
+- **AirPods and Bluetooth battery** and **download progress** in the pill.
+- **One focus for both devices:** quiet banners during focus, follow your iPhone's Focus, tap the iPhone to turn its Focus on. Pomodoro and weekly stats in Cat Center and on the iPhone.
+- Shopify is now an ordinary notification: the separate page, widget and sale cards are gone.
+- After updating, Cat Bridge offers to refresh the Cat Face sign-in tile (one admin prompt).
+
 ## 2.1.0
 - **Windows installer:** `DynamicIsland-Setup.exe` installs Cat Bridge for your account (no admin needed). It adds Start menu shortcuts for Cat Bridge and Cat Center, and can start with Windows. It also installs .NET 8 for you if it's missing.
 - **Automatic updates** from GitHub Releases, in Cat Center → General → Updates (choose Automatic, Ask me or Off). Downloads are checked against GitHub's SHA-256 before installing, and the app restarts by itself.

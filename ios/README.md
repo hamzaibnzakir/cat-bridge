@@ -7,7 +7,11 @@ The iPhone half of Dynamic Island for Windows: a native SwiftUI app that talks t
 - **Remote:** Find my laptop (the desktop cat meows), Lock laptop, start/stop a focus timer.
 - **Clipboard both ways**, and **open links** on the laptop.
 - **Files:** send photos, videos and any file to the laptop (they land in `Downloads\Cat Bridge` and on the island's shelf), and download files from the shelf.
-- **Alerts:** the laptop's notifications, today's Shopify total, and anything the laptop sent you.
+- **Alerts:** the laptop's notifications and anything the laptop sent you.
+- **Unlock the laptop with Face ID** (Secure Enclave key), **wake it**, **find it** on a map, ring it, or put it in lost mode.
+- **Remote:** the iPhone becomes the laptop's trackpad and keyboard.
+- **Share sheet:** "Send to Laptop" from any app.
+- **Focus:** today's focus time, the week and your streak.
 - **Shortcuts actions** that run in the background, with no URLs or keys to type:
   - **Send to Laptop**: put an iPhone notification on the laptop's island (use it in an *App Notification* automation for Shopify, WhatsApp…)
   - **Update Laptop**: battery, charging and Focus

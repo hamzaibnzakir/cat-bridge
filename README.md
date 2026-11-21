@@ -37,11 +37,17 @@ Built for a Dell Precision 5540 with no Windows Hello camera; it runs on any Win
 |---|---|---|
 | 🏝️ | **Dynamic Island** | Album art, **synced lyrics**, audio visualizer, widget home (system, battery, sound, timer, shelf, servers…), live pop-ups, cat ears that twitch |
 | 🧭 | **Island taskbar** | Hide the Windows taskbar; a dock of pinned and running apps with **live window previews**, an app launcher with search (Store apps too), background apps with Quit, "needs attention" glow |
-| 🔔 | **Mac-style notifications** | Banners that drop in at the top-right, pause on hover, swipe away with two fingers; **Copy code** for one-time codes |
-| 🛍️ | **Shopify sales** | Order notifications become green sale cards with a cha-ching, the cat celebrates, and a running total for today across currencies |
+| 🔔 | **Mac-style notifications** | Banners that drop in at the top-right, pause on hover, swipe away with two fingers; **Copy code** for one-time codes; quiet during focus |
 | 🐱 | **Desktop cat** | A cat that walks on your taskbar line, catches dropped files, reminds you to stretch and never blocks a click |
 | 🙂 | **Cat Face sign-in** | Face recognition with a head-turn liveness check on the real Windows sign-in screen; two failed tries fall back to your password |
-| 📱 | **Cat Bridge for iPhone** | Native SwiftUI app: clipboard both ways, photos and files, music, focus timer, find/lock laptop, laptop notifications, **Shortcuts actions** |
+| 🔓 | **Unlock with your iPhone** | Face ID on the iPhone unlocks the laptop. The key lives in the iPhone's Secure Enclave, and the lock screen checks the signature itself |
+| 🖱️ | **iPhone trackpad and keyboard** | One finger moves, tap to click, two fingers scroll and right-click, hold to drag; type with the iPhone keyboard, plus shortcut keys |
+| 📍 | **Find my laptop** | Map location, a loud alarm, and lost mode with your message on screen and on the sign-in tile |
+| ☀️ | **Wake from the iPhone** | Turns the screen on from anywhere over Tailscale; Wake-on-LAN on the same Wi-Fi; optional "stay reachable while plugged in" |
+| 📱 | **Cat Bridge for iPhone** | Native SwiftUI app: clipboard both ways, photos and files, a **Send to Laptop share sheet**, music, laptop notifications, **Shortcuts actions** |
+| 🎯 | **One focus for both** | Your iPhone's Focus quiets the laptop; the laptop's focus taps your iPhone; Pomodoro and weekly stats |
+| 🔎 | **Copy text from the screen** | Ctrl + Alt + T, drag over anything (a video, a picture, a PDF) and its text is copied. Screenshots go to the shelf |
+| 🎧 | **Pill extras** | AirPods and Bluetooth battery levels, download progress with speed, and a pop-up when downloads finish |
 | 🧰 | **Cat Center** | A desktop app for every setting, with responsive layout and smooth two-finger scrolling |
 
 ## 🚀 Quick start
@@ -88,6 +94,7 @@ flowchart LR
 - **Private by design:** the laptop listens only on its Tailscale address and `127.0.0.1`, never on Wi-Fi or the internet. A firewall rule accepts only Tailscale addresses, and every request needs the pairing key from the QR code.
 - **Alerts to a locked iPhone** go through the free [Bark](https://github.com/Finb/Bark) app, because a sideloaded app can't receive push without a paid developer account. Turn on Bark's AES encryption so only your phone can read them.
 - **Face data** never leaves the PC: 11 face embeddings, DPAPI-encrypted, readable only by you, Administrators and SYSTEM.
+- **iPhone unlock** uses a P-256 key in the iPhone's Secure Enclave that only signs after Face ID. You approve it on the laptop after checking a 6-digit code. The trusted key goes in a file only Administrators can change, and the sign-in tile checks each one-time challenge itself, so a program on the PC can't fake an unlock.
 
 ## 📁 Repository layout
 
@@ -97,7 +104,7 @@ cat-bridge/
 │   ├── Bridge/              Cat Bridge HTTP server, Bark, Web Push, Tailscale helpers
 │   ├── Center/              Cat Center desktop app
 │   ├── Taskbar/             Island taskbar: windows, icons, launcher, previews
-│   ├── Notify/              Mac-style banners, Shopify parser, sign-in summary
+│   ├── Notify/              Mac-style banners, sign-in summary
 │   ├── FaceId/  FaceHelper/ Face enrolment and verification (OpenCV YuNet + SFace)
 │   ├── FaceSignIn/          Windows credential provider (.NET Framework 4.8 COM)
 │   └── build.ps1            Builds windows/dist/DynamicIsland-windows.zip
@@ -125,10 +132,12 @@ To publish a version, run **Actions → Release → Run workflow** (or push a `v
 | `Ctrl + Alt + A` | Search and open apps |
 | `Ctrl + Alt + C` | Cat Center |
 | `Ctrl + Alt + H` | Hide / show the island |
+| `Ctrl + Alt + T` | Copy text from anything on screen |
+| `Ctrl + Alt + S` | Screenshot to the shelf |
 
 ## 🗺️ Roadmap
 - [ ] Real screenshots and a short demo video
-- [ ] iPhone home-screen widget (laptop battery, Shopify today)
+- [ ] iPhone home-screen widget (laptop battery, focus today)
 - [ ] Self-hosted Bark server recipe for a VPS over Tailscale
 - [ ] Optional Windows 11 lock-screen widget (needs MSIX packaging)
 
