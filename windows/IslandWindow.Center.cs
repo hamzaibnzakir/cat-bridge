@@ -31,6 +31,7 @@ public partial class IslandWindow
 
     public void ShowIslandPage(string tab) => OpenIsland(tab);
     public void ShowNotice(string title, string? sub = null) => ShowToast(new ToastSpec(title, sub, Glyph: "", Seconds: 3));
+    public void ShowNoticeAction(string title, string? sub, Action click) => ShowToast(new ToastSpec(title, sub, Glyph: "\uE72E", Seconds: 12, OnClick: click));
     public void RestartBridge() { StartBridge(); }
     public void ClearNotifications() { _notes.ClearHistory(); NotificationsChanged?.Invoke(); if (_tab == "alerts") RefreshAlerts(); }
 }

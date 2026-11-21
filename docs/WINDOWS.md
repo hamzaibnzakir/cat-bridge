@@ -27,8 +27,8 @@ Hermes features (prompt, queue, Command Center) are parked for now. Set `"hermes
 
 ## Cat Center (the desktop app)
 Double-click the tray icon, press **Ctrl + Alt + C**, or use **Cat Center** on the island's Apps page. Every setting is here, so you never need to edit settings.json:
-- **Home:** laptop and iPhone battery, Shopify today, notifications, Cat Bridge status, open apps, quick actions.
-- **Apps and taskbar**, **Notifications**, **Shopify**, **iPhone**, **Island** (widgets, order, colour, timing), **Desktop cat**, **Files and clipboard**, **Face unlock**, **Servers**, **General**.
+- **Home:** laptop, iPhone and Bluetooth battery, notifications, Cat Bridge status, open apps, quick actions.
+- **Apps and taskbar**, **Notifications**, **iPhone** (pairing, Bark, find my laptop), **Focus**, **Island** (widgets, order, colour, timing), **Desktop cat**, **Files and clipboard**, **Face unlock**, **Servers**, **General**.
 - The window is resizable. On narrow widths the sidebar shrinks to icons, tiles reflow and text wraps, so nothing overlaps.
 - **Two-finger scrolling** is smooth everywhere (Cat Center and the island). Sideways two-finger swipes scroll sideways strips and dismiss banners.
 
@@ -49,19 +49,48 @@ Cat Center → **Apps and taskbar** → **Hide the Windows taskbar**. The island
 - **Safety:** the taskbar comes back when you switch this off, when Dynamic Island exits, and even if it crashes. If it ever stays hidden, run **Restore taskbar.cmd** from the app folder. The Windows key, Alt + Tab and Win + D all keep working.
 - **Limit:** the small tray icons themselves can't be drawn inside the island, because Windows only gives them to Explorer. That's what the **Tray icons** button is for.
 
-## Mac-style notifications and Shopify
+## Mac-style notifications
 - **Banners:** iPhone notifications (and, if you like, Windows ones) drop in at the top right like on a Mac, or under the island.
   - They stack and pause while you hover.
   - They close with ×, a drag or a two-finger swipe to the right.
   - Hover shows actions: **Copy**, **Open**, and **Copy code 482913** when a message contains a one-time code.
-- **Shopify:** order notifications become a green sale card with the amount, the order number and the customer.
-  - A cha-ching sound plays and the desktop cat celebrates.
-  - A running total for today shows in multiple currencies ($, ₦, €, £, Rp…).
-  - The same order arriving twice (Phone Link and Cat Bridge) is counted once.
-  - There's a **Shopify today** widget on the island and a Shopify page in Cat Center.
-- **Sign-in screen:** the Cat Face tile shows a one-line summary, e.g. "Shopify: 4 orders · $312 today · 3 new notifications". Choose Off, Counts or Details in Cat Center → Notifications.
-  - Windows doesn't let other apps put widgets on the lock-screen picture itself, so it appears on the sign-in tile.
-  - After updating, open **Face unlock → Use on sign-in screen** once and press Turn on again, so the new tile is installed.
+- **During focus,** banners wait quietly in Alerts and you get one summary at the end.
+- **Sign-in screen:** the Cat Face tile shows a one-line summary, e.g. "3 new notifications (WhatsApp, Mail)". Choose Off, Counts or Details in Cat Center → Notifications.
+
+## Unlock with your iPhone
+1. Turn on Cat Face for the sign-in screen (Cat Center → Face unlock).
+2. In the iPhone app: **Settings → Unlock laptop with Face ID → Set up**.
+3. Cat Center shows the request with a 6-digit code. If it matches the iPhone, press **Allow** (one admin prompt).
+4. Lock the laptop. On the iPhone tap **Unlock laptop**, or on the lock screen press **Unlock with my iPhone** and tap the alert on your phone.
+
+How it works:
+- The iPhone keeps a P-256 key in its Secure Enclave that only signs after Face ID.
+- The lock-screen tile gives out a one-time challenge and checks the signature itself, against a list only Administrators can change.
+- It works while you're signed in and the PC is locked. After a restart, sign in once with Cat Face or your password.
+- After updating Cat Bridge, accept the "Update Cat Face on the sign-in screen" prompt so the tile has the newest version.
+
+## Wake, find and control the laptop from the iPhone
+- **Wake:** turns the screen on over Tailscale.
+  - If the laptop is asleep and you're on the same Wi-Fi, the iPhone sends a Wake-on-LAN packet. Turn on Wake-on-LAN in the network adapter's Power Management settings.
+  - **Stay reachable while plugged in** (Cat Center → iPhone) stops Windows from sleeping on power.
+- **Remote tab:** a trackpad (move, tap, two-finger scroll and right-click, hold to drag), the iPhone keyboard, and shortcut keys. Windows doesn't let any app type into the lock screen or into apps running as administrator.
+- **Find my laptop:**
+  - **Map:** turn on Location for desktop apps in Windows Settings.
+  - **Loud alarm:** at full volume.
+  - **Lost mode:** locks the laptop and shows your message on screen and on the sign-in tile.
+- **Share sheet:** **Send to Laptop** from any app. If it asks for the pairing link, copy it from Cat Center → iPhone.
+
+## Focus for both devices
+- Start focus from the island, the cat, Cat Center or the iPhone. Banners wait until you're done.
+- **Your iPhone's Focus** (via the Update Laptop automation) puts the laptop in focus too. It can also start a Pomodoro.
+- **Starting focus on the laptop** sends a Bark tap that runs your "Cat Focus On" Shortcut, because iOS doesn't let apps switch Focus themselves.
+- **Stats:** Cat Center → Focus shows today, the week and your streak.
+
+## Screen text, screenshots, Bluetooth, downloads
+- **Ctrl + Alt + T:** drag over anything and its text is copied (Windows OCR, offline).
+- **Ctrl + Alt + S:** a region screenshot, saved to Pictures\Screenshots\Cat Bridge, copied, and put on the shelf. Win + Shift + S shots land on the shelf too.
+- **Bluetooth:** AirPods and other Bluetooth devices show their battery when they connect and warn at 15%.
+- **Downloads:** progress and speed show in the pill, with a pop-up when a download finishes.
 
 ## Cat Bridge (iPhone ↔ laptop over Tailscale)
 A native iPhone app, **Cat Bridge**, talks to this laptop directly over Tailscale, anywhere in the world. No Safari, no Tailscale Serve.
@@ -83,7 +112,7 @@ A native iPhone app, **Cat Bridge**, talks to this laptop directly over Tailscal
 - Laptop battery, music controls, focus timer, Find laptop and Lock.
 - Clipboard both ways, send photos, videos and files, and download files from the shelf.
 - Open links on the laptop.
-- The laptop's notifications, your Shopify total, and what the laptop sent you.
+- The laptop's notifications, your focus stats, and what the laptop sent you.
 
 **Shortcuts actions** (no URLs or keys to type):
 - **Send to Laptop**: your iPhone's notifications onto the island.
@@ -91,7 +120,7 @@ A native iPhone app, **Cat Bridge**, talks to this laptop directly over Tailscal
 - **Copy to Laptop Clipboard**, **Open on Laptop**, **Send File to Laptop**, **Find My Laptop**, **Lock Laptop**, **Start Laptop Focus Timer**.
 
 **Your iPhone's notifications on the laptop** (e.g. Shopify)
-Shortcuts → Automation → **App Notification** → pick Shopify (or WhatsApp, Messages…) → Run Immediately → add **Send to Laptop** and fill App, Title and Body from the notification. iOS lets each automation watch one app.
+Shortcuts → Automation → **App Notification** → pick WhatsApp, Shopify, Messages… → Run Immediately → add **Send to Laptop** and fill App, Title and Body from the notification. iOS lets each automation watch one app.
 
 **Alerts on your iPhone (Bark)**
 A sideloaded app can't receive push notifications without a paid developer account, so the laptop sends pop-ups through the free [Bark](https://apps.apple.com/app/bark/id1403753865) app.

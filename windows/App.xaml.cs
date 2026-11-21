@@ -66,8 +66,32 @@ public partial class App : Application
         ListenForSignals(win);
         Autostart.Repair();
         Updater.Start(win, settings);
+        CheckSignInTile(win);
         if (args.Contains("--center") || args.Contains("--updated")) Center.CenterWindow.Open(win, args.Contains("--updated") ? "general" : "home");
         if (args.Contains("--updated")) win.ShowNotice($"Updated to Cat Bridge {Updater.CurrentVersion.ToString(3)}", "Have a look at what's new in Cat Center");
+    }
+
+    /// After an update, the Cat Face sign-in tile in Program Files is still the old one: offer to refresh it (one admin prompt).
+    static void CheckSignInTile(IslandWindow win)
+    {
+        try
+        {
+            if (!FaceId.FaceSignInWindow.Installed) return;
+            var mine = System.IO.Path.Combine(AppContext.BaseDirectory, "DynamicIsland.FaceSignIn.dll");
+            var installed = System.IO.Path.Combine(FaceId.SignInSecret.InstallDir, "DynamicIsland.FaceSignIn.dll");
+            if (!File.Exists(mine) || !File.Exists(installed)) return;
+            using var a = File.OpenRead(mine); using var b = File.OpenRead(installed);
+            if (Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(a)) == Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(b))) return;
+            var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+            t.Tick += (_, _) =>
+            {
+                t.Stop();
+                win.ShowNoticeAction("Update Cat Face on the sign-in screen", "New: unlock with your iPhone. Click to update (one admin prompt).",
+                    () => new FaceId.FaceSignInWindow(win.Settings).Show());
+            };
+            t.Start();
+        }
+        catch (Exception ex) { Log(ex); }
     }
 
     // ───────── talking to the running copy ─────────
