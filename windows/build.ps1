@@ -10,7 +10,8 @@ dotnet publish FaceHelper\FaceHelper.csproj -c Release -r win-x64 --self-contain
 dotnet build FaceSignIn\FaceSignIn.csproj -c Release
 Copy-Item FaceSignIn\bin\Release\net48\DynamicIsland.FaceSignIn.dll $out
 Copy-Item 'Turn off Cat Face sign-in.cmd', 'Restore taskbar.cmd' $out
-Copy-Item ..\docs\WINDOWS.md (Join-Path $out "README.md")
+Copy-Item ..\docs\SETUP.md (Join-Path $out "README.md")
+Copy-Item ..\docs\FEATURES.md, ..\docs\TROUBLESHOOTING.md $out
 Get-ChildItem $out -Filter *.pdb | Remove-Item
 Get-ChildItem $out -Filter 'opencv_videoio_ffmpeg*.dll' | Remove-Item
 

@@ -1,42 +1,53 @@
 # Cat Bridge for iPhone
 
-The iPhone half of Dynamic Island for Windows: a native SwiftUI app that talks to your laptop's island directly over **Tailscale**. No Safari, no web app.
+The iPhone half of Cat Bridge: a native SwiftUI app that talks to your Windows laptop directly over **Tailscale**. There's no web app, no server in between, and no Mac needed to build or install it.
 
-## What it does
-- **Laptop at a glance:** battery, what's playing (play/pause, next, previous), focus timer.
-- **Remote:** Find my laptop (the desktop cat meows), Lock laptop, start/stop a focus timer.
-- **Clipboard both ways**, and **open links** on the laptop.
-- **Files:** send photos, videos and any file to the laptop (they land in `Downloads\Cat Bridge` and on the island's shelf), and download files from the shelf.
-- **Alerts:** the laptop's notifications and anything the laptop sent you.
-- **Unlock the laptop with Face ID** (Secure Enclave key), **wake it**, **find it** on a map, ring it, or put it in lost mode.
-- **Remote:** the iPhone becomes the laptop's trackpad and keyboard.
-- **Share sheet:** "Send to Laptop" from any app.
-- **Focus:** today's focus time, the week and your streak.
-- **Shortcuts actions** that run in the background, with no URLs or keys to type:
-  - **Send to Laptop**: put an iPhone notification on the laptop's island (use it in an *App Notification* automation for Shopify, WhatsApp…)
-  - **Update Laptop**: battery, charging and Focus
-  - **Copy to Laptop Clipboard**, **Open on Laptop**, **Send File to Laptop**, **Find My Laptop**, **Lock Laptop**, **Start Laptop Focus Timer**
+- **Using it?** Installing and pairing are covered in [docs/SETUP.md](../docs/SETUP.md#5-install-the-iphone-app), and every screen is explained in [docs/FEATURES.md](../docs/FEATURES.md#on-the-iphone).
+- **This page** is for building and working on the app.
 
-## Build (no Mac needed)
-Every push to `main` runs **Build iPhone app** on GitHub's Mac machines and uploads **CatBridge-unsigned-ipa** (Actions tab → latest run → Artifacts). The core networking code is also tested on Linux.
+## What's in the app
+| Tab or part | What it does |
+|---|---|
+| **Laptop** | Battery and focus rings, now playing, Focus 25, Unlock with Face ID, Wake, Find, Lock, Meow, clipboard, open a link |
+| **Remote** | Trackpad (move, tap, two-finger scroll and right-click, hold to drag) and keyboard, over a WebSocket |
+| **Alerts** | The laptop's notifications and what it sent you |
+| **Files** | Send photos, videos and files to the laptop; download from its Shelf |
+| **Settings** | Pairing, Face ID unlock set-up, Bark and Shortcuts guides |
+| **ShareExtension** | **Send to Laptop** in the share sheet |
+| **App Intents** | Send to Laptop, Update Laptop, Copy to Laptop Clipboard, Open on Laptop, Send File to Laptop, Find My Laptop, Lock Laptop, Start Laptop Focus Timer |
 
-## Install with Sideloadly (Windows)
-1. Download the .ipa artifact and unzip it.
-2. Install [Sideloadly](https://sideloadly.io), plug in your iPhone, drop the .ipa in, enter your Apple ID and press Start.
-3. On the iPhone: **Settings → Privacy & Security → Developer Mode** → on (restart when asked). Then **Settings → General → VPN & Device Management** → trust your Apple ID.
-4. A free Apple ID keeps sideloaded apps for **7 days**. Re-install (your pairing is kept), or turn on Sideloadly's auto-refresh with the phone on the same Wi-Fi.
-
-## Pair
-On the laptop: **Cat Center → iPhone**. Scan the QR code with the iPhone Camera (it opens Cat Bridge) or inside the app. The code holds the laptop's Tailscale address, the port and the pairing key. The key is kept in the iPhone Keychain.
-
-## Alerts on a locked iPhone
-Push notifications need a paid Apple Developer account, so the laptop sends pop-ups through the free **Bark** app instead (Cat Center → iPhone → Bark). With Bark's AES encryption turned on, only your iPhone can read them.
-
-## Develop
-```bash
-cd ios && brew install xcodegen && xcodegen generate && open CatBridge.xcodeproj
-cd ios/Packages/CatBridgeCore && swift test        # unit tests
-CATBRIDGE_LIVE="catbridge://pair?host=100.x.y.z&port=47800&key=…" swift test   # against your laptop
+## Layout
 ```
-- `Packages/CatBridgeCore`: models, the HTTP client and pairing links (Foundation only, so it's testable anywhere).
-- `CatBridge/`: the SwiftUI app and its App Intents.
+ios/
+├── project.yml                 XcodeGen project (app + share extension)
+├── CatBridge/
+│   ├── App/                    App entry, Face ID unlock key (Secure Enclave)
+│   ├── Shared/                 Pairing store (shared Keychain group, also used by the extension)
+│   ├── Design/                 Theme and the drawn cat
+│   ├── Features/               Screens: Home, Remote, Find, Alerts, Files, Settings, QR scanner
+│   └── Intents/                Shortcuts actions
+├── ShareExtension/             "Send to Laptop"
+├── scripts/                    package-unsigned-ipa.sh (used by CI)
+└── Packages/CatBridgeCore/     Networking, models, pairing links, unlock message format + tests
+```
+
+## Build without a Mac
+Every push to `main` runs **Build iPhone app** (`.github/workflows/ios.yml`) on GitHub's macOS runners and uploads **CatBridge-unsigned-ipa** (Actions → the latest run → Artifacts). Releases attach it as **CatBridge.ipa**. Install it with [Sideloadly](https://sideloadly.io), which signs it with your Apple ID.
+
+## Build on a Mac
+```bash
+brew install xcodegen
+cd ios && xcodegen generate && open CatBridge.xcodeproj
+```
+Pick your team under *Signing & Capabilities* for both targets. The shared Keychain group is `<TEAM ID>.app.catbridge.shared`, worked out at run time from the app's own team prefix, so the app and extension share the pairing whatever Apple ID signs them.
+
+## Tests
+`CatBridgeCore` builds and tests on Linux and macOS:
+```bash
+cd ios/Packages/CatBridgeCore && swift test
+# against a real laptop (copy the link from Cat Center → iPhone → Copy pairing link):
+CATBRIDGE_LIVE="catbridge://pair?host=100.x.y.z&port=47800&key=…" swift test
+```
+
+## How it talks to the laptop
+Plain HTTP to `http://<tailscale-ip>:47800` inside Tailscale's WireGuard tunnel, with the pairing key in `X-Cat-Key`. `Info.plist` allows this with an `NSExceptionDomains` entry for `ts.net` and `NSAllowsArbitraryLoads`. Don't add `NSAllowsLocalNetworking`, because it makes iOS ignore the other exceptions. The full API is in [docs/HOW-IT-WORKS.md](../docs/HOW-IT-WORKS.md#the-bridge-api).

@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- **New documentation:** a step-by-step [set-up guide](docs/SETUP.md), a [guide to every feature](docs/FEATURES.md), [troubleshooting](docs/TROUBLESHOOTING.md), and [how it works](docs/HOW-IT-WORKS.md) (architecture, security, the bridge API, every setting). They replace `docs/WINDOWS.md`. The Windows zip now includes the set-up, features and troubleshooting guides.
+
 ## 2.2.0
 - **Unlock with your iPhone:** Face ID on the iPhone unlocks the locked laptop. Set it up in the iPhone app (Settings), then press Allow in Cat Center after checking the 6-digit code. Or press "Unlock with my iPhone" on the lock screen and tap the alert on your phone.
 - **Wake from the iPhone:** the screen turns on from anywhere over Tailscale. Wake-on-LAN works on the same Wi-Fi. A new "stay reachable while plugged in" option keeps the laptop awake.
