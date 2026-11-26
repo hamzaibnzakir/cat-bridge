@@ -26,6 +26,16 @@ public sealed record InboxItem(string Id, string Kind, string Title, string Text
 /// <summary>What the iPhone app learns when it connects.</summary>
 public sealed record HelloInfo(string Device, string Version, string? TailscaleIp, int Port, string[] Features);
 /// <summary>A notification the laptop received (for the iPhone app's "Laptop alerts" list).</summary>
+/// <summary>A source of screen frames for the Remote tab (ScreenGrabber on Windows).</summary>
+public interface IScreenFeed : IDisposable
+{
+    /// The screen's size in real pixels.
+    (int Width, int Height) Size();
+    /// A JPEG at most maxWidth wide, or null when nothing changed since the last one.
+    byte[]? Next(int maxWidth, int quality);
+    /// Send the next frame even if nothing changed.
+    void Reset();
+}
 public sealed record AlertEntry(string App, string Title, string Body, DateTime Time, bool FromPhone);
 
 /// <summary>Everything the bridge asks the island to do. Called on thread-pool threads.</summary>
@@ -64,6 +74,13 @@ public interface IBridgeHost
     /// One remote-control command from the iPhone's trackpad/keyboard (see InputInjector). Returns a reply line or null.
     string? Input(string command);
     string InputHello();
+    /// The iPhone wants to watch the screen. Returns null if allowed, otherwise the reason it isn't.
+    string? ScreenStart();
+    void ScreenStop();
+    IScreenFeed OpenScreen();
+    /// False once the person turns screen viewing off; open viewers are then closed.
+    bool ScreenAllowed { get; }
+    bool SessionLocked { get; }
     Task<object> Locate();
     void Alarm(bool on);
     void LostMode(bool on, string? message);
@@ -242,13 +259,118 @@ public sealed class BridgeServer : IDisposable
         return g.Length == _key.Length && CryptographicOperations.FixedTimeEquals(g, _key);
     }
 
-    async Task RunInputSocket(Req r, NetworkStream s)
+    static async Task<System.Net.WebSockets.WebSocket?> AcceptWebSocket(Req r, NetworkStream s)
     {
-        if (!r.Headers.TryGetValue("Sec-WebSocket-Key", out var wsKey) || wsKey.Length > 100) { await Json(s, 400, new { error = "Bad WebSocket request." }); return; }
+        if (!r.Headers.TryGetValue("Sec-WebSocket-Key", out var wsKey) || wsKey.Length > 100) { await Json(s, 400, new { error = "Bad WebSocket request." }); return null; }
         var accept = Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(wsKey.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
         var head = Encoding.ASCII.GetBytes($"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n");
         await s.WriteAsync(head);
-        using var ws = System.Net.WebSockets.WebSocket.CreateFromStream(s, new System.Net.WebSockets.WebSocketCreationOptions { IsServer = true, KeepAliveInterval = TimeSpan.FromSeconds(15) });
+        return System.Net.WebSockets.WebSocket.CreateFromStream(s, new System.Net.WebSockets.WebSocketCreationOptions { IsServer = true, KeepAliveInterval = TimeSpan.FromSeconds(15) });
+    }
+
+    /// <summary>
+    /// Live view of the laptop screen for the iPhone's Remote tab. The phone pulls frames: each "next" it sends
+    /// allows one more JPEG (binary message), so a slow connection never builds up a backlog and the picture stays live.
+    /// Frames are only sent when the screen changed. Text messages from the laptop: "screen W H" (real pixels, also sent
+    /// when the resolution changes), "locked" / "unlocked", "off reason". From the phone: "next", "q maxWidth quality fps".
+    /// </summary>
+    async Task RunScreenSocket(Req r, NetworkStream s)
+    {
+        using var ws = await AcceptWebSocket(r, s);
+        if (ws == null) return;
+        var sendLock = new SemaphoreSlim(1, 1);
+        async Task Say(string text)
+        {
+            await sendLock.WaitAsync();
+            try { await ws.SendAsync(Encoding.UTF8.GetBytes(text), System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None); }
+            finally { sendLock.Release(); }
+        }
+
+        var why = _host.ScreenStart();
+        if (why != null)
+        {
+            await Say("off " + why);
+            try { await ws.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "off", CancellationToken.None); } catch { }
+            return;
+        }
+        try
+        {
+            int credits = 0, maxWidth = 1280, quality = 60, fps = 15;
+            using var wake = new SemaphoreSlim(0);
+            using var stop = new CancellationTokenSource();
+
+            var reader = Task.Run(async () =>
+            {
+                var buf = new byte[1024];
+                try
+                {
+                    while (ws.State == System.Net.WebSockets.WebSocketState.Open)
+                    {
+                        var res = await ws.ReceiveAsync(buf, stop.Token);
+                        if (res.MessageType == System.Net.WebSockets.WebSocketMessageType.Close) break;
+                        foreach (var line in Encoding.UTF8.GetString(buf, 0, res.Count).Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            var a = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                            if (a.Length == 0) continue;
+                            if (a[0] == "next") { if (Interlocked.Increment(ref credits) > 3) Interlocked.Exchange(ref credits, 3); try { wake.Release(); } catch { } }
+                            else if (a[0] == "q" && a.Length >= 4 && int.TryParse(a[1], out var w) && int.TryParse(a[2], out var q) && int.TryParse(a[3], out var f))
+                            { maxWidth = Math.Clamp(w, 320, 3840); quality = Math.Clamp(q, 20, 95); fps = Math.Clamp(f, 1, 30); }
+                        }
+                    }
+                }
+                catch { }
+                finally { try { stop.Cancel(); } catch { } }
+            });
+
+            using var grab = _host.OpenScreen();
+            var (sw, sh) = grab.Size();
+            await Say($"screen {sw} {sh}");
+            bool lockedSaid = false;
+            var lastSent = DateTime.MinValue;
+            int lastW = maxWidth, lastQ = quality;
+
+            while (!stop.IsCancellationRequested && ws.State == System.Net.WebSockets.WebSocketState.Open)
+            {
+                if (Volatile.Read(ref credits) <= 0) { try { await wake.WaitAsync(1000, stop.Token); } catch { break; } continue; }
+
+                if (!_host.ScreenAllowed) { await Say("off Screen viewing was turned off on the laptop."); break; }
+                if (_host.SessionLocked)
+                {
+                    if (!lockedSaid) { await Say("locked"); lockedSaid = true; }
+                    try { await Task.Delay(500, stop.Token); } catch { break; }
+                    continue;
+                }
+                if (lockedSaid) { await Say("unlocked"); lockedSaid = false; grab.Reset(); }
+
+                var gap = TimeSpan.FromMilliseconds(1000.0 / fps) - (DateTime.UtcNow - lastSent);
+                if (gap > TimeSpan.Zero) { try { await Task.Delay(gap, stop.Token); } catch { break; } }
+
+                var size = grab.Size();
+                if (size != (sw, sh)) { (sw, sh) = size; await Say($"screen {sw} {sh}"); grab.Reset(); }
+                if (maxWidth != lastW || quality != lastQ) { lastW = maxWidth; lastQ = quality; grab.Reset(); }
+
+                byte[]? jpg = null;
+                try { jpg = grab.Next(maxWidth, quality); } catch (Exception ex) { Log?.Invoke(ex); }
+                if (jpg == null) { try { await Task.Delay(35, stop.Token); } catch { break; } continue; }
+
+                await sendLock.WaitAsync();
+                try { await ws.SendAsync(jpg, System.Net.WebSockets.WebSocketMessageType.Binary, true, CancellationToken.None); }
+                finally { sendLock.Release(); }
+                Interlocked.Decrement(ref credits);
+                lastSent = DateTime.UtcNow;
+            }
+            if (ws.State == System.Net.WebSockets.WebSocketState.Open)
+                try { await ws.CloseOutputAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None); } catch { }
+            try { await reader.WaitAsync(TimeSpan.FromSeconds(3)); } catch { }
+        }
+        catch (Exception ex) when (ex is IOException or System.Net.WebSockets.WebSocketException or ObjectDisposedException) { }
+        finally { _host.ScreenStop(); }
+    }
+
+    async Task RunInputSocket(Req r, NetworkStream s)
+    {
+        using var ws = await AcceptWebSocket(r, s);
+        if (ws == null) return;
         async Task Say(string text) => await ws.SendAsync(Encoding.UTF8.GetBytes(text), System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
         await Say(_host.InputHello());
         var buf = new byte[8192];
@@ -316,6 +438,13 @@ public sealed class BridgeServer : IDisposable
         if (r.Method == "GET" && r.Path == "/api/input" && r.Headers.TryGetValue("Upgrade", out var up) && up.Equals("websocket", StringComparison.OrdinalIgnoreCase))
         {
             await RunInputSocket(r, s);
+            return;
+        }
+
+        // live view of the screen (Remote tab, top half)
+        if (r.Method == "GET" && r.Path == "/api/screen" && r.Headers.TryGetValue("Upgrade", out var up2) && up2.Equals("websocket", StringComparison.OrdinalIgnoreCase))
+        {
+            await RunScreenSocket(r, s);
             return;
         }
 

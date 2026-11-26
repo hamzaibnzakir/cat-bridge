@@ -35,7 +35,7 @@ Cat Bridge is two apps that work together.
 
 **On your iPhone:** the **Cat Bridge** app connects to your laptop from anywhere in the world through **Tailscale**, a free private network between your own devices.
 - **Unlock:** unlock the laptop with Face ID.
-- **Remote control:** use your phone as the laptop's trackpad and keyboard.
+- **Remote control:** see the laptop's screen on your phone and use it as the trackpad and keyboard, like a small laptop.
 - **Sharing:** pass files and your clipboard between the two.
 - **Find it:** locate the laptop on a map, ring it or wake it up.
 - **Notifications:** see your iPhone's notifications on the laptop.
@@ -67,7 +67,7 @@ There's no cloud server and no account, and nothing goes through anyone else's c
 |---|---|---|
 | 🔓 | **Unlock the laptop with Face ID** | Tap **Unlock laptop** and look at your phone. The laptop unlocks. |
 | ☀️ | **Wake the laptop** | Turns its screen on from anywhere. If the laptop is asleep and you're on the same Wi-Fi, it sends a Wake-on-LAN signal. |
-| 🖱️ | **Trackpad and keyboard** | Your iPhone becomes the laptop's trackpad: move, click, right-click, scroll and drag. You can type with the iPhone keyboard, and there are keys for copy, paste, switching apps, volume and play. |
+| 💻 | **Your mini laptop** | The Remote tab shows the **laptop's screen live** on top: tap to click there, pinch to zoom. Underneath, your iPhone is the **trackpad and keyboard**: move, click, right-click, scroll, drag and type, plus keys for copy, paste, switching apps, volume and play. |
 | 📍 | **Find my laptop** | See it on a map, make it **ring at full volume**, or switch on **lost mode**, which locks it and shows your message on its screen. |
 | 📋 | **Clipboard and files** | Send your clipboard either way, send photos, videos and files to the laptop, and download files from the laptop's shelf. |
 | 📤 | **Share sheet** | **Send to Laptop** from Safari, Photos, Files or any app. Links open on the laptop. |

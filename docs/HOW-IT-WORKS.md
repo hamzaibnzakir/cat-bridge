@@ -74,6 +74,7 @@ flowchart LR
 - The firewall rule **Dynamic Island Cat Bridge** allows TCP 47800 only from those Tailscale ranges.
 - Tailscale encrypts all traffic between devices with **WireGuard**, and only devices signed in to your tailnet can connect. That's why the bridge itself speaks plain HTTP: it never leaves the encrypted tunnel.
 - Every `/api/` request must carry the **pairing key**, a long random secret, in the `X-Cat-Key` header (or `?k=`). It's compared in constant time. **New key** in Cat Center replaces it and unpairs every phone.
+- **Screen viewing** uses the same paired, Tailscale-only connection. The laptop always shows a purple dot while it's being watched, and Cat Center can turn it off.
 - Uploads are capped at 4 GB, and file names are cleaned so nothing can be written outside `Downloads\Cat Bridge`.
 
 ### Face ID unlock
@@ -163,9 +164,27 @@ Upgrade to a WebSocket with the key in `?k=`. The server first sends `hi <NAME> 
 | `k <name>` | Press a key: `esc tab enter backspace left up down right win f1–f12 volup voldown playpause …` |
 | `h <combo>` | A shortcut, for example `h ctrl+c`, `h alt+tab`, `h win+d` |
 | `z in\|out` | Zoom (Ctrl + plus or minus) |
+| `a <x> <y>` | Put the pointer at a spot on the main screen, 0–1 across and down (tapping the live screen sends this, then `c l`) |
 | `ping` | Keep-alive |
 
 Input is injected with Windows `SendInput`. Windows doesn't allow it on the secure desktop (the lock screen, UAC prompts) or into elevated apps.
+
+### Live screen: `GET /api/screen` (WebSocket)
+Upgrade with the key in `?k=`. The phone **pulls** frames, so a slow connection never builds up a backlog.
+
+| Direction | Message | Meaning |
+|---|---|---|
+| laptop → phone | `screen <W> <H>` | The main screen's size in real pixels. Sent first, and again if the resolution changes |
+| laptop → phone | *binary* | One JPEG frame, with the pointer drawn in |
+| laptop → phone | `locked` / `unlocked` | Windows was locked or unlocked. No frames are sent while it's locked |
+| laptop → phone | `off <reason>` | Screen viewing is turned off on the laptop. The socket then closes |
+| phone → laptop | `next` | Allow one more frame (at most 3 waiting). The app keeps two in flight |
+| phone → laptop | `q <maxWidth> <quality> <fps>` | Picture width in pixels (320–3840), JPEG quality (20–95), frame-rate cap (1–30) |
+
+- Frames are captured with GDI (`StretchBlt` with HALFTONE scaling and `CAPTUREBLT`, so layered windows such as the island show).
+- A frame is only sent when the picture changed, so a still screen costs almost nothing.
+- While anyone is watching, the island shows a purple dot. It shows even if privacy dots are turned off.
+- Turning off `screenShare` refuses new viewers and closes open ones.
 
 **Example:**
 ```bash
@@ -244,6 +263,7 @@ Everything is changeable in Cat Center. The file is `%AppData%\DynamicIsland\set
 | `bridgeListenTailscale` | `true` | Listen on the Tailscale addresses |
 | `bridgeExtraAddress` | `""` | One more local address to listen on (advanced) |
 | `stayAwakeOnPower` | `false` | *Stay reachable while plugged in* |
+| `screenShare` | `true` | *Let my iPhone see the screen* in the Remote tab |
 | `lostMode` / `lostMessage` | `false` / `""` | Lost mode and its message |
 
 ### Bark (alerts to the iPhone)

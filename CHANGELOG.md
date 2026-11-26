@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 2.3.0
+- **Your iPhone is now a mini laptop.** The Remote tab shows the laptop's screen live on top, with the trackpad and keys underneath. Tap the screen to click that spot, hold for a right-click, and pinch or double-tap to zoom. Choose Sharp, Smooth or Data saver. Frames are only sent when the screen changes.
+- **You always know when you're being watched:** a purple dot on the island and a pop-up while your iPhone views the screen. Turn it off in Cat Center → iPhone → *Let my iPhone see the screen*.
 - **New documentation:** a step-by-step [set-up guide](docs/SETUP.md), a [guide to every feature](docs/FEATURES.md), [troubleshooting](docs/TROUBLESHOOTING.md), and [how it works](docs/HOW-IT-WORKS.md) (architecture, security, the bridge API, every setting). They replace `docs/WINDOWS.md`. The Windows zip now includes the set-up, features and troubleshooting guides.
 
 ## 2.2.0

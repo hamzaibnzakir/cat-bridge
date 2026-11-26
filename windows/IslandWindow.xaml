@@ -165,6 +165,7 @@
                     <StackPanel x:Name="PrivacyDots" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="7,0,0,0" Visibility="Collapsed">
                         <Ellipse x:Name="CamDot" Width="7" Height="7" Fill="#30D158" Margin="1,0" Visibility="Collapsed"/>
                         <Ellipse x:Name="MicDot" Width="7" Height="7" Fill="#FF9F0A" Margin="1,0" Visibility="Collapsed"/>
+                        <Ellipse x:Name="ScrDot" Width="7" Height="7" Fill="#BF5AF2" Margin="1,0" Visibility="Collapsed"/>
                     </StackPanel>
 
                     <Grid VerticalAlignment="Center">
@@ -257,7 +258,8 @@
                             <Button x:Name="HdrPin" Style="{StaticResource TinyBtn}" Content="&#xE718;" FontSize="11" Margin="0,0,8,0"
                                     Foreground="{StaticResource Faint}" Click="PinBtn_Click"/>
                             <Ellipse x:Name="HdrCam" Width="6" Height="6" Fill="#30D158" Margin="0,0,4,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                            <Ellipse x:Name="HdrMic" Width="6" Height="6" Fill="#FF9F0A" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            <Ellipse x:Name="HdrMic" Width="6" Height="6" Fill="#FF9F0A" Margin="0,0,4,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            <Ellipse x:Name="HdrScr" Width="6" Height="6" Fill="#BF5AF2" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed" ToolTip="Your iPhone is viewing the screen"/>
                             <TextBlock x:Name="HdrClock" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Grid>

@@ -72,7 +72,7 @@ public partial class IslandWindow : IBridgeHost
     {
         var v = typeof(IslandWindow).Assembly.GetName().Version;
         return new HelloInfo(Environment.MachineName, v == null ? "2" : $"{v.Major}.{v.Minor}", Tailnet.IPv4?.ToString(), _s.BridgePort,
-            new[] { "status", "clipboard", "files", "shelf", "link", "media", "focus", "lock", "ping", "notify", "phone", "alerts", "inbox" });
+            new[] { "status", "clipboard", "files", "shelf", "link", "media", "focus", "lock", "ping", "notify", "phone", "alerts", "inbox", "input", "screen" });
     }
 
     IReadOnlyList<AlertEntry> IBridgeHost.Alerts() => Ui(() =>

@@ -1161,12 +1161,15 @@ public partial class IslandWindow : Window
 
     void PollPrivacy()
     {
-        if (!_s.PrivacyDots) { PrivacyDots.Visibility = HdrCam.Visibility = HdrMic.Visibility = Visibility.Collapsed; return; }
+        // the screen-viewing dot always shows, even with privacy dots turned off: someone can see this screen
+        bool scr = System.Threading.Volatile.Read(ref _screenViewers) > 0;
+        ScrDot.Visibility = HdrScr.Visibility = scr ? Visibility.Visible : Visibility.Collapsed;
+        if (!_s.PrivacyDots) { HdrCam.Visibility = HdrMic.Visibility = CamDot.Visibility = MicDot.Visibility = Visibility.Collapsed; PrivacyDots.Visibility = scr ? Visibility.Visible : Visibility.Collapsed; return; }
         var (camStarted, micStarted) = _privacy.Poll();
         bool cam = _privacy.Camera.Count > 0, mic = _privacy.Mic.Count > 0;
         CamDot.Visibility = HdrCam.Visibility = cam ? Visibility.Visible : Visibility.Collapsed;
         MicDot.Visibility = HdrMic.Visibility = mic ? Visibility.Visible : Visibility.Collapsed;
-        PrivacyDots.Visibility = cam || mic ? Visibility.Visible : Visibility.Collapsed;
+        PrivacyDots.Visibility = cam || mic || scr ? Visibility.Visible : Visibility.Collapsed;
         HdrCam.ToolTip = cam ? "Camera: " + string.Join(", ", _privacy.Camera) : null;
         HdrMic.ToolTip = mic ? "Microphone: " + string.Join(", ", _privacy.Mic) : null;
         if (cam != _camOn || mic != _micOn) { _camOn = cam; _micOn = mic; UpdateCompact(); }

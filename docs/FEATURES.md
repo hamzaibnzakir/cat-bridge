@@ -20,7 +20,7 @@ A guide to every feature on the laptop and the iPhone, and how to use it. To ins
 - [The Laptop tab](#the-laptop-tab)
 - [Unlock with Face ID](#unlock-the-laptop-with-face-id)
 - [Wake the laptop](#wake-the-laptop)
-- [The Remote tab: trackpad and keyboard](#the-remote-tab-trackpad-and-keyboard)
+- [The Remote tab: your mini laptop](#the-remote-tab-your-mini-laptop)
 - [Find my laptop](#find-my-laptop)
 - [The Alerts tab](#the-alerts-tab)
 - [The Files tab](#the-files-tab)
@@ -196,7 +196,7 @@ The settings app. Open it with **Ctrl + Alt + C**, by double-clicking the tray i
 | **Home** | Laptop, iPhone and Bluetooth batteries; recent notifications; Cat Bridge status; open apps; quick actions |
 | **Apps and taskbar** | Hide the taskbar, dock previews, pinned apps |
 | **Notifications** | Notification access, banner position and duration, which banners show, lock-screen summary |
-| **iPhone** | Tailscale address, port, firewall, pairing QR code, *Stay reachable*, Find my laptop (location, lost mode, alarm test), Bark set-up and encryption, unlock requests |
+| **iPhone** | Tailscale address, port, firewall, pairing QR code, *Stay reachable*, *Let my iPhone see the screen*, Find my laptop (location, lost mode, alarm test), Bark set-up and encryption, unlock requests |
 | **Focus** | Pomodoro length, silence banners, follow the iPhone's Focus, the Focus shortcut names, stats |
 | **Island** | Widgets and their order, accent colour, lyrics, pop-ups, timings, gestures |
 | **Desktop cat** | On or off, colour, stretch reminders |
@@ -248,9 +248,28 @@ It works while you're signed in and the PC is locked. After a restart, sign in o
 
 **Wake laptop** turns the laptop's screen on over Tailscale. If the laptop is asleep and you're on the same Wi-Fi, it also sends a Wake-on-LAN packet. Keep the laptop reachable with *Stay reachable while plugged in*. See [SETUP step 12](SETUP.md#12-waking-the-laptop-and-keeping-it-reachable-optional).
 
-## The Remote tab: trackpad and keyboard
+## The Remote tab: your mini laptop
 
-Your iPhone becomes the laptop's trackpad and keyboard.
+The Remote tab turns your iPhone into a small laptop: **the laptop's screen, live, on top**, and the trackpad and keys underneath.
+
+**The live screen**
+- Shows the laptop's main screen as it happens, pointer included. It works anywhere over Tailscale.
+- **Tap** the picture to click exactly that spot. **Hold** for a right-click there.
+- **Pinch** or **double-tap** to zoom in on small text; drag to look around while zoomed. Double-tap again to zoom out.
+- **Quality** (the sliders button, top left):
+  - **Sharp**: the clearest picture, for Wi-Fi.
+  - **Smooth**: more frames per second.
+  - **Data saver**: for mobile data.
+- The status line shows the frame rate. The laptop only sends a new picture when something on screen changes, so a still screen uses almost no data.
+- **Hide the screen** with the display button (top right) to use only the trackpad.
+- If the laptop is locked, it says so, with an **Unlock with Face ID** button.
+- **On the laptop**, while your iPhone is watching:
+  - a **purple dot** shows on the island
+  - a pop-up appears when viewing starts
+  
+  To turn screen viewing off, use Cat Center → iPhone → **Let my iPhone see the screen**.
+
+**The trackpad and keyboard**
 
 | Gesture | What it does |
 |---|---|
@@ -263,7 +282,7 @@ Your iPhone becomes the laptop's trackpad and keyboard.
 - **Left click** and **Right click** buttons under the pad.
 - **Keyboard:** tap the keyboard button and type with the iPhone keyboard; text appears on the laptop.
 - **Keys:** Esc, Tab, Enter, Backspace, the arrows, the Windows key, F5, and shortcuts: **Copy**, **Paste**, **Undo**, **Switch app** (Alt + Tab), **Desktop** (Win + D), **Zoom +** and **Zoom −**, volume and play/pause.
-- **Pointer speed:** Slow, Normal, Fast or Very fast.
+- **Pointer speed:** Slow, Normal, Fast or Very fast (the sliders button).
 
 > Windows doesn't let any app type into the lock screen, or into apps running as administrator. Use **Unlock laptop** for the lock screen.
 

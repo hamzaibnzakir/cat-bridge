@@ -55,6 +55,9 @@ public sealed class AppSettings
     /// <summary>While plugged in, keep Windows from sleeping so your iPhone can always reach it (the screen still turns off).</summary>
     public bool StayAwakeOnPower { get; set; } = false;
 
+    /// <summary>Let the paired iPhone see this laptop's screen in its Remote tab. The island shows a purple dot while it's watching.</summary>
+    public bool ScreenShare { get; set; } = true;
+
     // ── focus (both devices) ──
     /// <summary>Hold banners and pop-ups during focus (they wait in Alerts).</summary>
     public bool FocusSilence { get; set; } = true;

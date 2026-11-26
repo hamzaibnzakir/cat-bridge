@@ -118,7 +118,12 @@ final class LiveBridgeTests: XCTestCase {
         XCTAssertEqual(reg.state, "pending")
         do { try await client.unlockApprove(nonce: ch.nonce, signature: Data([1, 2, 3])); XCTFail("should be refused") }
         catch let e as BridgeError { if case .server(let code, _) = e { XCTAssertEqual(code, 403) } else { XCTFail("\(e)") } }
-        XCTAssertEqual(client.inputURL?.absoluteString, "ws://127.0.0.1:47801/api/input?k=abc123abc123abc123abc123")
+        for (url, path) in [(client.inputURL, "/api/input"), (client.screenURL, "/api/screen")] {
+            let u = try XCTUnwrap(url)
+            XCTAssertEqual(u.scheme, "ws")
+            XCTAssertEqual(u.path, path)
+            XCTAssertEqual(u.query, "k=abc123abc123abc123abc123")
+        }
     }
 
     func testUploadAndDownload() async throws {

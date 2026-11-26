@@ -345,6 +345,8 @@ public sealed partial class CenterWindow
                 }), ""),
             Row("Stay reachable while plugged in", "Stops Windows from sleeping on power so your iPhone can always wake and unlock it. The screen still turns off.",
                 Toggle(_s.StayAwakeOnPower, v => { _s.StayAwakeOnPower = v; _s.Save(); _island.ApplyStayAwake(); }), "\uE945"),
+            Row("Let my iPhone see the screen", "Shows this laptop's screen in the iPhone's Remote tab, so it works like a small laptop. A purple dot on the island means it's being watched.",
+                Toggle(_s.ScreenShare, v => { _s.ScreenShare = v; _s.Save(); }), "\uE7F4"),
             Pad(Buttons(Button("Restart bridge", () => { _island.RestartBridge(); Go("iphone", true); }), Button("Open Tailscale admin", () => Open("https://login.tailscale.com/admin/machines"))))));
 
         // find my laptop

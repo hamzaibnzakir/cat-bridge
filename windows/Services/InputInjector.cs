@@ -13,6 +13,7 @@ namespace DynamicIsland;
 ///   d|u|c l|r|m        button down / up / click                       dc           double-click
 ///   t text…            type text                                      k name       press a key (enter, esc, tab, left, f5, volup…)
 ///   h ctrl+shift+t     a shortcut (ctrl, alt, shift, win + one key)   z in|out     zoom (Ctrl + wheel)
+///   a x y              put the pointer at a spot on the main screen (0–1 across, 0–1 down; from tapping the live screen)
 /// Windows won't let any app type into the lock screen or into apps running as administrator.
 /// </summary>
 public static class InputInjector
@@ -23,7 +24,7 @@ public static class InputInjector
     [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public UNION u; }
     [DllImport("user32.dll", SetLastError = true)] static extern uint SendInput(uint n, INPUT[] inputs, int size);
 
-    const uint MOVE = 0x1, LDOWN = 0x2, LUP = 0x4, RDOWN = 0x8, RUP = 0x10, MDOWN = 0x20, MUP = 0x40, WHEEL = 0x800, HWHEEL = 0x1000;
+    const uint ABSOLUTE = 0x8000, MOVE = 0x1, LDOWN = 0x2, LUP = 0x4, RDOWN = 0x8, RUP = 0x10, MDOWN = 0x20, MUP = 0x40, WHEEL = 0x800, HWHEEL = 0x1000;
     const uint KEYUP = 0x2, UNICODE = 0x4, EXTENDED = 0x1;
 
     static double _fx, _fy;
@@ -80,6 +81,15 @@ public static class InputInjector
                 _fx -= ix; _fy -= iy;
                 if (ix != 0 || iy != 0) Send(Mouse(MOVE, ix, iy));
                 return null;
+            case "a":
+            {
+                if (a.Length < 2) return "err a";
+                // absolute coordinates are 0–65535 across the main monitor, the same screen the Remote tab shows
+                double nx = Math.Clamp(D(a[0]), 0, 1), ny = Math.Clamp(D(a[1]), 0, 1);
+                _fx = _fy = 0;
+                Send(Mouse(MOVE | ABSOLUTE, (int)Math.Round(nx * 65535), (int)Math.Round(ny * 65535)));
+                return null;
+            }
             case "d": case "u": case "c":
             {
                 var b = a.FirstOrDefault() ?? "l";

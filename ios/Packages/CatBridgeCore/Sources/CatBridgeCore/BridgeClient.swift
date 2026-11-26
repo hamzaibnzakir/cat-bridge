@@ -138,10 +138,15 @@ public final class BridgeClient: @unchecked Sendable {
     }
 
     /// ws://… URL for the live trackpad/keyboard channel.
-    public var inputURL: URL? {
+    public var inputURL: URL? { socketURL("/api/input") }
+
+    /// Live view of the laptop's screen (Remote tab). Binary messages are JPEG frames; see BridgeServer.RunScreenSocket.
+    public var screenURL: URL? { socketURL("/api/screen") }
+
+    private func socketURL(_ path: String) -> URL? {
         guard let base = pairing.baseURL, var c = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
-        c.scheme = "ws"
-        c.path = "/api/input"
+        c.scheme = c.scheme == "https" ? "wss" : "ws"
+        c.path = path
         c.queryItems = [URLQueryItem(name: "k", value: pairing.key)]
         return c.url
     }
